@@ -1,0 +1,1678 @@
+/* ═══════════════════════════════════════════════════
+   SpaceCheck XR — Immersive shell layout (base layer)
+   Tokens overridden by ar-enterprise-theme.css
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  --bg-mesh: #0c1218;
+  --bg-mesh-deep: #0a0e14;
+  --bg-app-gradient:
+    radial-gradient(ellipse 100% 70% at 50% -15%, rgba(0, 229, 255, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 100% 100%, rgba(255, 149, 0, 0.1), transparent 50%),
+    linear-gradient(155deg, #05070a 0%, #0c1218 45%, #0a0e14 100%);
+  --bg-deep: #05070a;
+  --bg-base: #0a0e14;
+  --bg-surface: #0f151d;
+  --bg-elevated: #151c28;
+  --bg-hover: #1c2838;
+  --bg-inverse: #000000;
+  --bg-sidebar: transparent;
+
+  --ink: #e8f7ff;
+  --ink-muted: #8ebacf;
+  --ink-faint: #5a7f96;
+
+  --glass-white: rgba(18, 26, 38, 0.92);
+  --glass-white-strong: rgba(22, 32, 46, 0.96);
+  --glass-ink: #050810;
+  --glass-border: rgba(0, 229, 255, 0.22);
+  --glass-border-ink: rgba(255, 149, 0, 0.35);
+  --glass-blur: none;
+  --glass-blur-heavy: none;
+
+  --chrome-panel: linear-gradient(
+    165deg,
+    rgba(22, 32, 46, 0.97) 0%,
+    rgba(12, 18, 28, 0.98) 55%,
+    rgba(8, 12, 18, 0.99) 100%
+  );
+  --chrome-panel-strong: linear-gradient(
+    155deg,
+    rgba(28, 40, 56, 0.98) 0%,
+    rgba(14, 20, 30, 0.99) 100%
+  );
+
+  --accent: #00d4ff;
+  --accent-hover: #00a8cc;
+  --accent-soft: rgba(0, 212, 255, 0.14);
+
+  --border-dim: rgba(0, 229, 255, 0.14);
+  --border-base: rgba(0, 212, 255, 0.32);
+  --border-bright: rgba(0, 229, 255, 0.55);
+
+  --cyan: #00e5ff;
+  --violet: #7c8cff;
+  --green: #00ffc8;
+  --red: #ff5c6a;
+  --amber: #ff9500;
+
+  --text-1: #e8f7ff;
+  --text-2: #8ebacf;
+  --text-3: #5a7f96;
+  --text-inverse: #05070a;
+  --text-on-ink: #e8f7ff;
+
+  --glow-cyan: 0 0 18px rgba(0, 229, 255, 0.5), 0 0 36px rgba(0, 212, 255, 0.2);
+  --glow-amber: 0 0 14px rgba(255, 149, 0, 0.45);
+  --glow-violet: 0 0 12px rgba(124, 140, 255, 0.3);
+
+  --font-display: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', Consolas, monospace;
+
+  --chrome-gap: 12px;
+  /** Width reserved for floating left nav pill + spacing before the scene */
+  --nav-float-width: 68px;
+  --float-radius: 14px;
+  --radius: 10px;
+  --radius-sm: 8px;
+
+  --shadow-float: 0 10px 40px rgba(0, 0, 0, 0.55), 0 0 28px rgba(0, 212, 255, 0.1);
+  --shadow-float-sm: 0 4px 18px rgba(0, 0, 0, 0.45), 0 0 14px rgba(0, 212, 255, 0.08);
+  --shadow-float-ink: 0 12px 48px rgba(0, 0, 0, 0.65), 0 0 32px rgba(255, 149, 0, 0.12);
+
+  /* HUD accent tokens */
+  --brand-navy: #050810;
+  --brand-blue: #00b8d9;
+  --brand-blue-mid: #00d4ff;
+  --brand-cyan: #00e5ff;
+  --brand-ice: rgba(0, 229, 255, 0.12);
+  --brand-snow: #1a2535;
+  --brand-amber: #ff9500;
+}
+
+/* ── Floating chrome panels (HUD glass — cyan trim, amber highlights) ── */
+.float-glass {
+  background: var(--chrome-panel);
+  border: 1px solid var(--border-base);
+  box-shadow: var(--shadow-float), inset 0 1px 0 rgba(0, 229, 255, 0.08);
+  border-radius: var(--float-radius);
+}
+
+.float-glass--ink {
+  background: var(--chrome-panel-strong);
+  border: 1px solid var(--border-bright);
+  box-shadow: var(--shadow-float), var(--glow-cyan);
+  color: var(--text-1);
+}
+
+html,
+body,
+#app {
+  background: var(--bg-app-gradient) !important;
+  background-color: var(--bg-deep) !important;
+  color: var(--text-1);
+}
+
+.scanlines,
+.viewport::before,
+.viewport::after,
+.dashboard::before,
+.topbar::after,
+.sidebar::after,
+.right-panel::after,
+.right-panel::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* ══════════════════════════════════════════════
+   IMMERSIVE SHELL — scene full screen, chrome floats
+   ══════════════════════════════════════════════ */
+.immersive-shell {
+  display: block !important;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-app-gradient) !important;
+  background-color: var(--bg-deep) !important;
+  grid-template: none !important;
+  gap: 0 !important;
+  padding: 0 !important;
+}
+
+.immersive-shell .scene-stage.scene-float {
+  position: fixed;
+  z-index: 1;
+  top: calc(var(--chrome-gap) + 48px + 8px);
+  left: calc(var(--chrome-gap) + var(--nav-float-width) + 8px);
+  right: var(--chrome-gap);
+  bottom: calc(var(--chrome-gap) + 40px + 8px);
+  margin: 0 !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--float-radius) !important;
+  box-shadow: var(--shadow-float) !important;
+  background: var(--bg-mesh) !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.immersive-shell.drawer-open .scene-stage.scene-float {
+  right: calc(var(--chrome-gap) + min(340px, calc(100vw - 88px)) + 8px);
+}
+
+.immersive-shell.nav-dock-open .scene-stage.scene-float {
+  right: calc(var(--chrome-gap) + min(280px, calc(100vw - 120px)) + 8px);
+}
+
+.immersive-shell .viewport-body,
+.immersive-shell .viewport-3d,
+.immersive-shell .viewport-2d,
+.immersive-shell .viewport-body canvas {
+  pointer-events: auto;
+}
+
+/* Floating UI — always above scene and receives clicks */
+.immersive-shell .chrome-layer,
+.immersive-shell .topbar,
+.immersive-shell .sidebar-nav-block,
+.immersive-shell .viewport-tabs,
+.immersive-shell .bottombar,
+.immersive-shell .float-nav-dock,
+.immersive-shell .float-drawer {
+  pointer-events: auto;
+  z-index: 500;
+}
+
+.immersive-shell .viewport-tabs {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  width: 100%;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px !important;
+  min-height: 44px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-surface);
+}
+
+.immersive-shell .viewport-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: var(--bg-mesh);
+}
+
+.immersive-shell .viewport-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.immersive-shell .viewport-3d,
+.immersive-shell .viewport-2d {
+  position: relative;
+  z-index: 1;
+}
+
+/* 3D scene tools — walk + place POI */
+.scene-toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.scene-toolbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  pointer-events: auto;
+  background: var(--chrome-panel-strong) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--shadow-float) !important;
+}
+
+.scene-tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.scene-tool-btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.scene-tool-btn.active {
+  background: rgba(29, 78, 216, 0.18);
+  border-color: var(--border-bright);
+  color: var(--accent);
+}
+
+.scene-tool-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.scene-tool-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scene-tool-hint {
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(10, 10, 10, 0.72);
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.scene-tool-hint.hidden {
+  display: none;
+}
+
+.scene-tool-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
+  padding: 0;
+  border: 1px solid var(--border-base);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.scene-tool-cancel:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.scene-tool-cancel.hidden {
+  display: none;
+}
+
+.scene-tool-cancel svg {
+  width: 18px;
+  height: 18px;
+}
+
+.immersive-shell .viewport-3d,
+.immersive-shell .viewport-2d {
+  background: var(--bg-mesh) !important;
+}
+
+.immersive-shell .viewport-3d canvas,
+.immersive-shell .viewport-2d canvas {
+  background: transparent !important;
+}
+
+/* Top bar */
+.immersive-shell .topbar {
+  position: fixed;
+  top: var(--chrome-gap);
+  left: var(--chrome-gap);
+  right: var(--chrome-gap);
+  height: 48px;
+  min-height: 48px;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  width: auto !important;
+  display: flex;
+  align-items: center;
+  border-radius: var(--float-radius) !important;
+  background: var(--chrome-panel) !important;
+}
+
+.topbar-logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--cyan);
+  background: none;
+  -webkit-text-fill-color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.topbar-subtitle {
+  font-size: 11px;
+  color: var(--amber);
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  text-shadow: var(--glow-amber);
+}
+
+.topbar-divider {
+  height: 20px;
+  background: var(--border-base);
+}
+
+.topbar-owner-chip {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border: 1px solid var(--border-base);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.sys-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--green);
+  box-shadow: none;
+  animation: none;
+}
+
+.sys-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.sys-label::after {
+  display: none !important;
+}
+
+.topbar-date {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.topbar-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar-logout {
+  padding: 7px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(255, 149, 0, 0.55);
+  border-radius: 999px;
+  margin-left: 8px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  box-shadow: var(--glow-amber), inset 0 0 12px rgba(0, 212, 255, 0.06);
+}
+
+.topbar-logout:hover {
+  background: rgba(0, 212, 255, 0.18);
+  border-color: var(--amber);
+  box-shadow: var(--glow-cyan), var(--glow-amber);
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.brand-logo--topbar {
+  height: 44px;
+  max-width: 44px;
+}
+
+.topbar-logo-icon {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.form-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.brand-logo--login {
+  height: 128px;
+  max-width: min(220px, 80vw);
+  width: auto;
+}
+
+.form-brand-title {
+  text-align: center;
+  margin-bottom: 4px !important;
+}
+
+/* Nav menu — floating icon block only (no full-height black sidebar rail) */
+.immersive-shell .sidebar-nav-block {
+  position: fixed;
+  left: var(--chrome-gap);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  margin: 0;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  background: var(--chrome-panel-strong) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--shadow-float) !important;
+}
+
+/* Prevent legacy dark “sidebar column” tint on the floating nav */
+.immersive-shell .sidebar-nav-block.float-glass {
+  background: var(--chrome-panel-strong) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.sidebar-nav-block .sidebar-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text-3) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-block .sidebar-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--ink-muted);
+  stroke-width: 1.6;
+}
+
+.sidebar-nav-block .sidebar-label {
+  display: none;
+}
+
+.sidebar-nav-block .sidebar-btn:hover {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  transform: none;
+}
+
+.sidebar-nav-block .sidebar-btn:hover svg {
+  color: var(--ink);
+}
+
+.sidebar-nav-block .sidebar-btn.active {
+  background: rgba(0, 212, 255, 0.18) !important;
+  color: var(--cyan) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.45),
+    var(--glow-cyan) !important;
+}
+
+.sidebar-nav-block .sidebar-btn.active svg {
+  color: var(--cyan);
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+}
+
+.sidebar-nav-block .sidebar-btn.active::before {
+  display: none !important;
+}
+
+/* Bottom bar float */
+.immersive-shell .bottombar {
+  position: fixed;
+  bottom: var(--chrome-gap);
+  left: var(--chrome-gap);
+  right: var(--chrome-gap);
+  height: 40px;
+  min-height: 40px;
+  padding: 0 16px !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-radius: var(--float-radius) !important;
+  background: var(--chrome-panel) !important;
+}
+
+.stat-chip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 6px;
+}
+
+.stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+.stat-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+/* Floating nav dock — blue frost glass + snow texture */
+.float-nav-dock {
+  position: fixed;
+  right: var(--chrome-gap);
+  top: calc(var(--chrome-gap) + 52px + 48px);
+  width: min(280px, calc(100vw - 120px));
+  max-height: calc(100vh - 52px - 48px - 44px - 36px);
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  padding: 0;
+}
+
+.immersive-shell.nav-dock-open .float-nav-dock {
+  display: flex;
+}
+
+.nav-dock-frost {
+  isolation: isolate;
+  border-radius: var(--float-radius);
+  border: 1px solid var(--border-base);
+  background: linear-gradient(
+    155deg,
+    rgba(18, 28, 42, 0.94) 0%,
+    rgba(10, 16, 26, 0.96) 45%,
+    rgba(8, 12, 20, 0.98) 100%
+  );
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow:
+    var(--shadow-float),
+    var(--glow-cyan),
+    inset 0 1px 0 rgba(0, 229, 255, 0.12),
+    inset 0 -1px 0 rgba(255, 149, 0, 0.15);
+}
+
+.nav-dock-frost::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.92;
+  background-image:
+    radial-gradient(1.8px 1.8px at 8% 14%, rgba(255, 255, 255, 0.98) 48%, transparent 50%),
+    radial-gradient(2px 2px at 22% 38%, rgba(255, 255, 255, 0.95) 48%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 41% 12%, rgba(248, 252, 255, 0.9) 48%, transparent 50%),
+    radial-gradient(2.2px 2.2px at 58% 28%, rgba(255, 255, 255, 0.92) 48%, transparent 50%),
+    radial-gradient(1.6px 1.6px at 74% 16%, rgba(255, 255, 255, 0.88) 48%, transparent 50%),
+    radial-gradient(2px 2px at 88% 42%, rgba(248, 252, 255, 0.95) 48%, transparent 50%),
+    radial-gradient(1.4px 1.4px at 15% 62%, rgba(255, 255, 255, 0.9) 48%, transparent 50%),
+    radial-gradient(2.4px 2.4px at 33% 78%, rgba(255, 255, 255, 0.96) 48%, transparent 50%),
+    radial-gradient(1.7px 1.7px at 52% 58%, rgba(224, 242, 254, 0.85) 48%, transparent 50%),
+    radial-gradient(2px 2px at 68% 72%, rgba(255, 255, 255, 0.94) 48%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 85% 64%, rgba(255, 255, 255, 0.88) 48%, transparent 50%),
+    radial-gradient(1.8px 1.8px at 6% 88%, rgba(248, 252, 255, 0.92) 48%, transparent 50%),
+    radial-gradient(2.2px 2.2px at 48% 92%, rgba(255, 255, 255, 0.9) 48%, transparent 50%),
+    radial-gradient(ellipse 130% 70% at 50% -15%, rgba(56, 189, 248, 0.28), transparent 58%),
+    radial-gradient(ellipse 90% 50% at 100% 100%, rgba(37, 99, 235, 0.12), transparent 55%);
+}
+
+.nav-dock-frost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.08) 42%,
+    rgba(186, 230, 253, 0.12) 100%
+  );
+}
+
+.nav-dock-frost .nav-panel {
+  position: relative;
+  z-index: 1;
+  padding: 16px 16px 18px !important;
+  background: transparent !important;
+  border: none !important;
+  overflow-y: auto;
+  max-height: inherit;
+}
+
+.nav-dock-frost .nav-title {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  color: var(--cyan) !important;
+  padding: 0 0 12px !important;
+  border: none !important;
+  text-shadow: var(--glow-cyan);
+}
+
+.nav-dock-frost .nav-subtitle {
+  color: rgba(12, 30, 61, 0.65) !important;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav-dock-frost .nav-divider {
+  height: 1px;
+  margin: 10px 0 12px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(37, 99, 235, 0.2) 20%,
+    rgba(56, 189, 248, 0.35) 50%,
+    rgba(37, 99, 235, 0.2) 80%,
+    transparent
+  );
+  border: none;
+}
+
+.nav-dock-frost .btn-nav {
+  background: rgba(255, 255, 255, 0.5) !important;
+  color: var(--brand-navy) !important;
+  border: 1px solid rgba(37, 99, 235, 0.35) !important;
+  font-weight: 600 !important;
+  margin: 4px 0 !important;
+  width: 100% !important;
+  box-shadow:
+    0 2px 8px rgba(29, 78, 216, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.nav-dock-frost .btn-nav:hover {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: var(--brand-blue-mid) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15) !important;
+}
+
+.nav-dock-frost .coord-group label {
+  color: rgba(29, 78, 216, 0.75) !important;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.nav-dock-frost .coord-group input {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  color: var(--brand-navy) !important;
+  border-radius: var(--radius-sm) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+
+.nav-dock-frost .coord-group input:focus {
+  border-color: var(--brand-blue-mid) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+  outline: none;
+}
+
+.nav-dock-frost .coord-inputs {
+  padding: 0 2px;
+  margin: 8px 0 10px;
+}
+
+.nav-dock-frost .nav-hint {
+  margin: 12px 0 0 !important;
+  font-size: 11px !important;
+  line-height: 1.45 !important;
+  color: rgba(12, 30, 61, 0.62) !important;
+  padding: 0 2px 4px !important;
+}
+
+.nav-dock-frost .nav-hint kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand-blue);
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Floating drawer (panels) */
+.immersive-shell .float-drawer {
+  position: fixed;
+  right: var(--chrome-gap);
+  top: calc(var(--chrome-gap) + 52px);
+  bottom: calc(var(--chrome-gap) + 44px);
+  width: min(340px, calc(100vw - 88px));
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  margin: 0 !important;
+  border-radius: var(--float-radius) !important;
+}
+
+.immersive-shell.drawer-open .float-drawer {
+  display: flex;
+}
+
+/* Right drawer — blue frost glass (POIs, journey, etc.) */
+.drawer-frost {
+  isolation: isolate;
+  border: 1px solid var(--border-base);
+  background: linear-gradient(
+    160deg,
+    rgba(20, 30, 44, 0.95) 0%,
+    rgba(12, 18, 28, 0.97) 50%,
+    rgba(8, 12, 20, 0.98) 100%
+  );
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: var(--shadow-float), 0 0 24px rgba(0, 212, 255, 0.08);
+}
+
+.drawer-frost::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.9;
+  background-image:
+    radial-gradient(1.6px 1.6px at 10% 20%, rgba(255, 255, 255, 0.95) 48%, transparent 50%),
+    radial-gradient(2px 2px at 85% 15%, rgba(255, 255, 255, 0.9) 48%, transparent 50%),
+    radial-gradient(1.5px 1.5px at 70% 55%, rgba(248, 252, 255, 0.88) 48%, transparent 50%),
+    radial-gradient(2px 2px at 25% 75%, rgba(255, 255, 255, 0.92) 48%, transparent 50%),
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(56, 189, 248, 0.2), transparent 55%);
+}
+
+.drawer-frost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, transparent 50%);
+}
+
+.drawer-frost .panel-slot {
+  position: relative;
+  z-index: 1;
+}
+
+.immersive-shell.reviews-focus .float-drawer,
+.immersive-shell.insights-focus .float-drawer {
+  display: flex !important;
+  left: calc(var(--chrome-gap) + var(--nav-float-width) + 8px);
+  right: var(--chrome-gap);
+  width: auto;
+  max-width: none;
+}
+
+.immersive-shell.reviews-focus .panel-slot.active,
+.immersive-shell.insights-focus .panel-slot.active {
+  min-height: 0;
+  flex: 1;
+  width: 100%;
+}
+
+.immersive-shell.reviews-focus .reviews-panel,
+.immersive-shell.insights-focus .user-insights-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Live tracking — full-height user list */
+.immersive-shell .user-panel {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.immersive-shell .user-panel-header {
+  flex-shrink: 0;
+  padding: 14px 16px 6px;
+}
+
+.immersive-shell .user-tabs {
+  margin: 6px 12px 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-base);
+}
+
+.immersive-shell .user-tab {
+  color: var(--text-3);
+}
+
+.immersive-shell .user-tab.active {
+  background: var(--bg-elevated);
+  color: var(--brand-blue);
+  box-shadow: var(--shadow-float-sm);
+}
+
+.immersive-shell .user-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none !important;
+  padding: 4px 12px 12px;
+}
+
+.immersive-shell .user-detail:not(.hidden) {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  border-top: 1px solid var(--border-dim);
+  padding-top: 8px;
+}
+
+.immersive-shell .user-panel:has(.user-detail:not(.hidden)) .user-list {
+  flex: 0 1 42%;
+  max-height: 42%;
+}
+
+.immersive-shell .user-detail-content {
+  max-height: none !important;
+}
+
+.immersive-shell .user-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-dim);
+  margin-bottom: 6px;
+  box-shadow: var(--shadow-float-sm);
+}
+
+.immersive-shell .user-item.active {
+  border-color: var(--brand-blue-mid);
+  background: var(--bg-surface);
+  box-shadow: inset 0 0 0 1px var(--brand-blue-mid);
+}
+
+/* Reviews / stats — full-width content panel, no 3D scene */
+.immersive-shell.reviews-focus .scene-stage.scene-float,
+.immersive-shell.insights-focus .scene-stage.scene-float {
+  display: none !important;
+}
+
+.panel-slot {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 0 12px !important;
+  background: transparent !important;
+}
+
+.panel-slot.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-title,
+.admin-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border-dim);
+  text-transform: uppercase;
+}
+
+/* Viewport tabs */
+.viewport-tab {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  padding: 6px 12px;
+  border-bottom: 2px solid transparent;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.viewport-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.map-display-select {
+  font-size: 11px;
+  padding: 5px 8px;
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--ink);
+}
+
+.viewport-map-style label {
+  font-size: 10px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+/* Buttons — white fill, black border/text */
+.btn-nav,
+.btn-save,
+.reviews-export,
+.review-download-btn {
+  background: var(--chrome-panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--ink) !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: var(--shadow-float-sm) !important;
+  margin: 4px 14px !important;
+  width: calc(100% - 28px) !important;
+  padding: 8px 12px !important;
+}
+
+.btn-nav:hover,
+.btn-save:hover,
+.reviews-export:hover,
+.review-download-btn:hover {
+  background: var(--bg-hover) !important;
+  box-shadow: var(--shadow-float) !important;
+  transform: none !important;
+}
+
+.btn-delete,
+.btn-delete-poi,
+#btn-delete-poi.btn-save,
+#btn-delete-zone.btn-save,
+#btn-cancel-draw.btn-save,
+.admin-btn-delete {
+  background: var(--chrome-panel) !important;
+  color: var(--red) !important;
+  border: 1px solid var(--red) !important;
+  box-shadow: none !important;
+}
+
+.btn-delete:hover,
+.btn-delete-poi:hover,
+#btn-delete-poi.btn-save:hover,
+#btn-delete-zone.btn-save:hover,
+#btn-cancel-draw.btn-save:hover,
+.admin-btn-delete:hover {
+  background: #fef2f2 !important;
+  color: var(--red) !important;
+  border-color: var(--red) !important;
+}
+
+.poi-actions-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  align-items: stretch;
+}
+
+.poi-actions-row .poi-btn-save {
+  flex: 0 0 75%;
+  width: 75% !important;
+  max-width: 75%;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+.poi-actions-row .poi-btn-delete {
+  flex: 0 0 calc(25% - 8px);
+  width: calc(25% - 8px) !important;
+  max-width: calc(25% - 8px);
+  margin: 0 !important;
+  padding: 8px 4px !important;
+  min-width: 0;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.poi-actions-row .poi-btn-save .icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+.coord-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 0 14px 10px;
+}
+
+.coord-group input {
+  padding: 6px 8px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+
+.immersive-shell input[type='text'],
+.immersive-shell input[type='number'],
+.immersive-shell input[type='password'],
+.immersive-shell input[type='date'],
+.immersive-shell select,
+.immersive-shell textarea {
+  background: var(--chrome-panel) !important;
+  color: var(--ink) !important;
+}
+
+.immersive-shell input:focus,
+.immersive-shell select:focus,
+.immersive-shell textarea:focus {
+  border-color: var(--brand-blue-mid) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.22), var(--shadow-float-sm) !important;
+  outline: none;
+}
+
+.reviews-refresh {
+  font-size: 11px;
+  padding: 6px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+}
+
+/* Lists & cards inside drawer */
+.nav-item,
+.poi-item,
+.tracking-row,
+.submitted-row,
+.admin-item {
+  margin: 0 12px 6px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  box-shadow: var(--shadow-float-sm);
+}
+
+.nav-item:hover,
+.poi-item:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-bright);
+  color: var(--accent);
+}
+
+.nav-item.active,
+.poi-item.active {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.5), 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+.reviews-panel-header {
+  padding: 10px 12px;
+}
+
+.reviews-stat-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.reviews-stat-value {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.reviews-filter-select,
+.reviews-date-input {
+  font-size: 11px;
+  padding: 6px 8px;
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.review-card {
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: none !important;
+  margin: 0 12px 8px;
+  padding: 12px !important;
+}
+
+.review-journey-title {
+  color: var(--ink) !important;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-stop {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+}
+
+.admin-panel,
+.analytics-panel {
+  margin: 8px 12px;
+  padding: 12px !important;
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius) !important;
+}
+
+.analytics-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+}
+
+.analytics-card-value {
+  color: var(--ink) !important;
+  text-shadow: none !important;
+}
+
+/* Login — same HUD canvas as dashboard */
+.form-overlay {
+  background-color: var(--bg-deep) !important;
+  background-image: var(--bg-app-gradient), url('/login-spatial-bg.svg');
+  background-size: cover, cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 24px !important;
+}
+
+.form-overlay--glass .form-card {
+  width: min(400px, 92vw) !important;
+  padding: 28px 28px 26px !important;
+  background: var(--chrome-panel-strong) !important;
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--float-radius) !important;
+  box-shadow: var(--shadow-float), var(--glow-cyan), inset 0 0 0 1px rgba(255, 149, 0, 0.15) !important;
+}
+
+.form-card::before,
+.form-card::after {
+  display: none !important;
+}
+
+.form-card h1 {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+}
+
+.form-card .subtitle {
+  font-size: 13px !important;
+  color: var(--text-2) !important;
+  margin-bottom: 22px !important;
+}
+
+.form-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.form-group input {
+  padding: 10px 12px !important;
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.password-field input {
+  padding-right: 44px !important;
+}
+
+.password-toggle {
+  color: var(--text-3);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--ink);
+  background: var(--bg-hover);
+}
+
+.form-group input:focus {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.25), var(--glow-cyan) !important;
+}
+
+.btn-start {
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.35) 0%, rgba(0, 184, 217, 0.2) 100%) !important;
+  color: var(--cyan) !important;
+  border: 1px solid var(--amber) !important;
+  font-weight: 600 !important;
+  padding: 11px !important;
+  border-radius: var(--radius-sm) !important;
+  margin-top: 8px !important;
+  box-shadow: var(--glow-amber), var(--shadow-float-sm);
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+}
+
+.btn-start:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.45) 0%, rgba(0, 180, 220, 0.3) 100%) !important;
+  border-color: var(--cyan) !important;
+  box-shadow: var(--glow-cyan), var(--glow-amber);
+}
+
+.form-error {
+  font-size: 12px;
+  padding: 8px 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--red);
+  border-radius: var(--radius-sm);
+}
+
+.form-error.hidden {
+  display: none;
+}
+
+.status-bar {
+  background: var(--chrome-panel) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border-base) !important;
+}
+
+/* Kill global overrides */
+.sidebar {
+  background: transparent !important;
+  border: none !important;
+}
+
+.right-panel,
+.panel-slot {
+  background: transparent !important;
+}
+
+.reviews-stat-card,
+.review-card,
+.admin-panel,
+.analytics-panel {
+  background: var(--chrome-panel) !important;
+}
+
+/* Hide legacy coordinate help */
+.poi-panel-hint,
+.map2d-matterport-help {
+  display: none !important;
+}
+
+.poi-list {
+  padding: 0 4px 8px;
+}
+
+.map2d-actions {
+  padding: 0 14px 14px;
+}
+
+.poi-panel-header,
+.map2d-header {
+  padding: 14px 16px 10px !important;
+}
+
+.immersive-shell .poi-panel-title {
+  color: var(--cyan) !important;
+  text-shadow: var(--glow-cyan);
+}
+
+.float-drawer .journey-panel,
+.float-drawer .reviews-panel {
+  padding: 0 0 8px;
+}
+
+.dashboard::before,
+.topbar::after,
+.sidebar::after,
+.right-panel::after {
+  display: none !important;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+/* Login overlay must not block dashboard when hidden */
+#form-overlay.hidden {
+  display: none !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+.overlay.form-overlay:not([style*='display: none']) {
+  z-index: 900;
+}
+
+#app > .dashboard:not(.hidden) {
+  z-index: 10;
+  position: relative;
+}
+
+.dashboard,
+.dashboard .right-panel,
+.dashboard .float-nav-dock,
+.dashboard .topbar,
+.dashboard .bottombar,
+.dashboard .sidebar-nav-block,
+.dashboard .poi-panel,
+.dashboard .panel-slot,
+.dashboard .roadmap-inner,
+.dashboard .poi-item,
+.dashboard .poi-coords-title,
+.dashboard .nav-subtitle,
+.dashboard .field-label,
+.dashboard .coord-group .field-label,
+.dashboard .stat-chip,
+.dashboard .topbar-date,
+.dashboard .topbar-time {
+  user-select: none;
+  cursor: default;
+}
+
+.topbar-logout,
+.sidebar-btn,
+.viewport-tab,
+.btn-nav,
+.btn-start,
+.map-display-select,
+.dashboard button,
+.dashboard a,
+.dashboard .poi-item,
+.dashboard .btn-poi-add {
+  cursor: pointer;
+}
+
+.dashboard input[type='text'],
+.dashboard input[type='password'],
+.dashboard input[type='number'],
+.dashboard input[type='email'],
+.dashboard textarea,
+.dashboard select {
+  cursor: text;
+  user-select: text;
+}
+
+.dashboard label {
+  cursor: default;
+  user-select: none;
+}
+
+@media (max-width: 768px) {
+  .immersive-shell .scene-stage.scene-float {
+    left: var(--chrome-gap);
+    top: calc(var(--chrome-gap) + 48px + 8px);
+    right: var(--chrome-gap);
+  }
+
+  .immersive-shell .sidebar-nav-block {
+    top: auto;
+    bottom: calc(var(--chrome-gap) + 48px);
+    left: var(--chrome-gap);
+    right: var(--chrome-gap);
+    transform: none;
+    flex-direction: row;
+    padding: 8px 12px !important;
+    overflow-x: auto;
+    max-width: calc(100vw - 24px);
+  }
+
+  .float-nav-dock,
+  .immersive-shell .float-drawer {
+    left: var(--chrome-gap);
+    right: var(--chrome-gap);
+    width: auto;
+  }
+}
+
+/* Viewport bar — display mode only (no 2D tab) */
+.immersive-shell .viewport-tabs--display-only {
+  justify-content: flex-end;
+}
+
+/* Journey panel — HUD dark */
+.immersive-shell .journey-panel.panel-slot.active {
+  padding: 16px 18px 20px !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+.immersive-shell .roadmap-inner {
+  padding: 0 4px;
+}
+
+.immersive-shell .roadmap-toolbar {
+  margin-bottom: 16px;
+  padding: 0 2px;
+}
+
+.immersive-shell .roadmap-title {
+  color: var(--cyan) !important;
+  text-shadow: var(--glow-cyan) !important;
+}
+
+.immersive-shell .roadmap-node--start {
+  border-color: var(--border-base) !important;
+  background: var(--chrome-panel) !important;
+}
+
+.immersive-shell .roadmap-node-label {
+  color: var(--cyan) !important;
+  text-shadow: var(--glow-cyan);
+}
+
+.immersive-shell .roadmap-node--poi {
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--border-base) !important;
+}
+
+.immersive-shell .roadmap-node-seq {
+  background: rgba(0, 212, 255, 0.2) !important;
+  color: var(--cyan) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.immersive-shell .roadmap-node--add {
+  border: 1px dashed var(--border-bright) !important;
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+.immersive-shell .roadmap-hint {
+  padding: 0 4px;
+  margin-top: 16px;
+}
+
+.immersive-shell .roadmap-chain--vertical .roadmap-node--poi,
+.immersive-shell .roadmap-chain--vertical .roadmap-node--start,
+.immersive-shell .roadmap-chain--vertical .roadmap-node--add {
+  width: 100%;
+  justify-content: center !important;
+  text-align: center;
+}
+
+/* Reviews / stats panels */
+.immersive-shell .reviews-panel-header,
+.immersive-shell .user-insights-header {
+  padding: 14px 16px 10px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.immersive-shell .reviews-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.immersive-shell .reviews-filters,
+.immersive-shell .reviews-date-filters,
+.immersive-shell #insights-date-filters {
+  padding: 0 16px 10px !important;
+}
+
+.immersive-shell .reviews-summary-grid {
+  padding: 0 16px 12px !important;
+}
+
+.immersive-shell .reviews-list,
+.immersive-shell .insights-user-list {
+  padding: 0 16px 16px !important;
+}
+
+.immersive-shell .review-journey-title {
+  color: var(--ink) !important;
+  text-shadow: none !important;
+}
+
+.immersive-shell .review-meta {
+  color: #000000 !important;
+  padding: 0 4px;
+}
+
+.immersive-shell .review-media-badge,
+.immersive-shell .review-media-badge--video {
+  color: var(--ink) !important;
+  background: var(--chrome-panel) !important;
+  border: 1px solid var(--ink) !important;
+  font-weight: 600;
+}
+
+.immersive-shell .review-video,
+.immersive-shell .review-snapshot {
+  background: #f5f5f5 !important;
+  border: 1px solid var(--border-base) !important;
+}
+
+.immersive-shell .review-stop {
+  padding: 12px !important;
+}
+
+.immersive-shell .review-card-top {
+  padding-bottom: 4px;
+}
+
+.immersive-shell .reviews-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 32px;
+  padding: 6px !important;
+}
+
+.immersive-shell .ui-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.immersive-shell .btn-save .icon,
+.immersive-shell .btn-nav .icon,
+.immersive-shell .zone-draw-btn .icon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.immersive-shell .admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-sm);
+}
+
+.immersive-shell .admin-btn-edit:hover {
+  border-color: var(--ink);
+}
+
+.immersive-shell .admin-btn-delete {
+  border-color: var(--red) !important;
+  color: var(--red) !important;
+}
