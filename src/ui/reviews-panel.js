@@ -174,6 +174,34 @@ export function createReviewsPanel(container) {
     return imageBlobToDataUrl(blob);
   }
 
+  function loadImageDimensions(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => reject(new Error('Failed to decode review image'));
+      img.src = dataUrl;
+    });
+  }
+
+  async function imageMetaForReview(row) {
+    const dataUrl = await imageDataForReview(row);
+    if (!dataUrl) return null;
+    const { width, height } = await loadImageDimensions(dataUrl);
+    return { dataUrl, width, height };
+  }
+
+  /** Fit image inside a box while preserving aspect ratio. */
+  function fitImageDimensions(naturalW, naturalH, maxW, maxH) {
+    if (!naturalW || !naturalH) return { width: maxW, height: maxH };
+    const scale = Math.min(maxW / naturalW, maxH / naturalH);
+    return {
+      width: naturalW * scale,
+      height: naturalH * scale,
+    };
+  }
+
   function reviewMediaKey(row, index = 0) {
     if (row?.id != null) return String(row.id);
     if (row?.review_id != null) return String(row.review_id);
@@ -207,8 +235,8 @@ export function createReviewsPanel(container) {
           });
         }
         try {
-          const dataUrl = await imageDataForReview(row);
-          if (dataUrl) imageMap.set(key, dataUrl);
+          const imageMeta = await imageMetaForReview(row);
+          if (imageMeta) imageMap.set(key, imageMeta);
         } catch {
           /* poster / snapshot optional */
         }
@@ -271,7 +299,7 @@ export function createReviewsPanel(container) {
   }) {
     const key = reviewMediaKey(row, index);
     const videoMeta = videoMetaMap.get(key);
-    const imgData = imageMap.get(key);
+    const imgMeta = imageMap.get(key);
     let cursorY = y;
 
     if (videoMeta) {
@@ -284,33 +312,45 @@ export function createReviewsPanel(container) {
       doc.setFont('helvetica', 'bold');
       doc.text('Screen recording', x, cursorY);
       cursorY += 5;
-      drawPdfVideoPlayTile(doc, x, cursorY, imgW, imgH, videoMeta.url, imgData ?? null);
+      drawPdfVideoPlayTile(doc, x, cursorY, imgW, imgH, videoMeta.url, imgMeta?.dataUrl ?? null);
       cursorY += imgH + 3;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
       doc.text(`Duration: ${videoMeta.duration} — opens video in browser`, x, cursorY);
       cursorY += 5;
-      if (imgData && !String(row?.image_path ?? '').includes('_poster')) {
+      if (imgMeta && !String(row?.image_path ?? '').includes('_poster')) {
         doc.setFontSize(10);
         doc.setTextColor(15, 23, 42);
         doc.setFont('helvetica', 'bold');
         doc.text('Snapshot', x, cursorY);
         cursorY += 5;
-        const snapH = Math.min(45, imgH * 0.55);
+        const snapMaxH = Math.min(45, imgH * 0.55);
+        const { width: snapW, height: snapH } = fitImageDimensions(
+          imgMeta.width,
+          imgMeta.height,
+          imgW,
+          snapMaxH
+        );
         if (cursorY + snapH + 4 > pageBottom) {
           doc.addPage();
           cursorY = 16;
         }
-        const fmt = imgData.includes('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(imgData, fmt, x, cursorY, imgW, snapH);
+        const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(imgMeta.dataUrl, fmt, x, cursorY, snapW, snapH);
         cursorY += snapH + 4;
       }
       return cursorY;
     }
 
-    if (imgData) {
-      if (cursorY + imgH + 10 > pageBottom) {
+    if (imgMeta) {
+      const { width: snapW, height: snapH } = fitImageDimensions(
+        imgMeta.width,
+        imgMeta.height,
+        imgW,
+        imgH
+      );
+      if (cursorY + snapH + 10 > pageBottom) {
         doc.addPage();
         cursorY = 16;
       }
@@ -319,9 +359,9 @@ export function createReviewsPanel(container) {
       doc.setFont('helvetica', 'bold');
       doc.text('Snapshot', x, cursorY);
       cursorY += 5;
-      const fmt = imgData.includes('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(imgData, fmt, x, cursorY, imgW, imgH);
-      cursorY += imgH + 4;
+      const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(imgMeta.dataUrl, fmt, x, cursorY, snapW, snapH);
+      cursorY += snapH + 4;
       return cursorY;
     }
 
