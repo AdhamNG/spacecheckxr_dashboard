@@ -202,6 +202,10 @@ export function createReviewsPanel(container) {
     };
   }
 
+  function centeredMediaX(containerX, containerW, mediaW) {
+    return containerX + (containerW - mediaW) / 2;
+  }
+
   function reviewMediaKey(row, index = 0) {
     if (row?.id != null) return String(row.id);
     if (row?.review_id != null) return String(row.review_id);
@@ -245,12 +249,22 @@ export function createReviewsPanel(container) {
     return { imageMap, videoMetaMap };
   }
 
-  function drawPdfVideoPlayTile(doc, x, y, w, h, videoUrl, thumbDataUrl) {
+  function drawPdfVideoPlayTile(doc, containerX, y, containerW, maxH, videoUrl, thumbMeta) {
+    let tileX = containerX;
+    let tileW = containerW;
+    let tileH = maxH;
+    if (thumbMeta?.dataUrl && thumbMeta.width && thumbMeta.height) {
+      const fitted = fitImageDimensions(thumbMeta.width, thumbMeta.height, containerW, maxH);
+      tileW = fitted.width;
+      tileH = fitted.height;
+      tileX = centeredMediaX(containerX, containerW, tileW);
+    }
+
     let drewThumb = false;
-    if (thumbDataUrl) {
+    if (thumbMeta?.dataUrl) {
       try {
-        const fmt = thumbDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(thumbDataUrl, fmt, x, y, w, h);
+        const fmt = thumbMeta.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(thumbMeta.dataUrl, fmt, tileX, y, tileW, tileH);
         drewThumb = true;
       } catch {
         drewThumb = false;
@@ -258,11 +272,11 @@ export function createReviewsPanel(container) {
     }
     if (!drewThumb) {
       doc.setFillColor(15, 23, 42);
-      doc.rect(x, y, w, h, 'F');
+      doc.rect(tileX, y, tileW, tileH, 'F');
     }
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    const r = Math.min(w, h) * 0.1;
+    const cx = tileX + tileW / 2;
+    const cy = y + tileH / 2;
+    const r = Math.min(tileW, tileH) * 0.1;
     doc.setFillColor(255, 255, 255);
     doc.circle(cx, cy, r, 'F');
     doc.setFillColor(30, 58, 138);
@@ -277,10 +291,11 @@ export function createReviewsPanel(container) {
     );
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text('Tap to play', cx, y + h - 3.5, { align: 'center' });
+    doc.text('Tap to play', cx, y + tileH - 3.5, { align: 'center' });
     if (videoUrl && typeof doc.link === 'function') {
-      doc.link(x, y, x + w, y + h, { url: videoUrl });
+      doc.link(tileX, y, tileX + tileW, y + tileH, { url: videoUrl });
     }
+    return tileH;
   }
 
   /**
@@ -303,7 +318,10 @@ export function createReviewsPanel(container) {
     let cursorY = y;
 
     if (videoMeta) {
-      if (cursorY + imgH + 14 > pageBottom) {
+      const videoThumbH = imgMeta
+        ? fitImageDimensions(imgMeta.width, imgMeta.height, imgW, imgH).height
+        : imgH;
+      if (cursorY + videoThumbH + 14 > pageBottom) {
         doc.addPage();
         cursorY = 16;
       }
@@ -312,8 +330,16 @@ export function createReviewsPanel(container) {
       doc.setFont('helvetica', 'bold');
       doc.text('Screen recording', x, cursorY);
       cursorY += 5;
-      drawPdfVideoPlayTile(doc, x, cursorY, imgW, imgH, videoMeta.url, imgMeta?.dataUrl ?? null);
-      cursorY += imgH + 3;
+      const drawnVideoH = drawPdfVideoPlayTile(
+        doc,
+        x,
+        cursorY,
+        imgW,
+        imgH,
+        videoMeta.url,
+        imgMeta ?? null
+      );
+      cursorY += drawnVideoH + 3;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(51, 65, 85);
@@ -336,8 +362,9 @@ export function createReviewsPanel(container) {
           doc.addPage();
           cursorY = 16;
         }
+        const snapX = centeredMediaX(x, imgW, snapW);
         const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(imgMeta.dataUrl, fmt, x, cursorY, snapW, snapH);
+        doc.addImage(imgMeta.dataUrl, fmt, snapX, cursorY, snapW, snapH);
         cursorY += snapH + 4;
       }
       return cursorY;
@@ -359,8 +386,9 @@ export function createReviewsPanel(container) {
       doc.setFont('helvetica', 'bold');
       doc.text('Snapshot', x, cursorY);
       cursorY += 5;
+      const snapX = centeredMediaX(x, imgW, snapW);
       const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(imgMeta.dataUrl, fmt, x, cursorY, snapW, snapH);
+      doc.addImage(imgMeta.dataUrl, fmt, snapX, cursorY, snapW, snapH);
       cursorY += snapH + 4;
       return cursorY;
     }
