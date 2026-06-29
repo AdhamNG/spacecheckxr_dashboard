@@ -2,7 +2,6 @@
  * Journey reviews — reads `pj_journey_reviews` (separate sidebar section).
  */
 import {
-  fetchImageBlobFromRow,
   fetchAllJourneyReviews,
   formatReviewDuration,
   getImageUrlForReview,
@@ -11,8 +10,14 @@ import {
   reviewHasVideo,
 } from '../services/supabase.js';
 import {
+  computeJourneyPdfDetail,
+  generateJourneyPdfReport,
+  preloadJsPDF,
+} from '../services/journey-pdf-generator.js';
+import {
   getCompleteJourneyStops,
   getJourneyDisplayNameById,
+  getJourneyRowById,
   hydrateJourneyRegistry,
   sanitizeJourneyFilename,
 } from '../services/journey-registry.js';
@@ -62,15 +67,6 @@ function uniqueValues(rows, getValue) {
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
-function sentimentLabel(row) {
-  return row.sentiment ?? row.review_sentiment ?? 'N/A';
-}
-
-function distanceLabel(row) {
-  const d = Number(row.distance_to_poi ?? row.distance ?? NaN);
-  if (!Number.isFinite(d)) return 'N/A';
-  return `${d.toFixed(2)}m`;
-}
 
 /** @param {Record<string, unknown>} row */
 function reviewRowDateMs(row) {
@@ -149,256 +145,10 @@ export function createReviewsPanel(container) {
   let allRows = [];
   let currentRows = [];
 
-  async function loadJsPDF() {
-    if (window.jspdf) return;
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error('Failed to load jsPDF'));
-      document.head.appendChild(s);
-    });
-  }
-
-  async function imageBlobToDataUrl(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error('Failed to read review image'));
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  async function imageDataForReview(row) {
-    const blob = await fetchImageBlobFromRow(row, 'pj_snapshots');
-    return imageBlobToDataUrl(blob);
-  }
-
-  function loadImageDimensions(dataUrl) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      };
-      img.onerror = () => reject(new Error('Failed to decode review image'));
-      img.src = dataUrl;
-    });
-  }
-
-  async function imageMetaForReview(row) {
-    const dataUrl = await imageDataForReview(row);
-    if (!dataUrl) return null;
-    const { width, height } = await loadImageDimensions(dataUrl);
-    return { dataUrl, width, height };
-  }
-
-  /** Fit image inside a box while preserving aspect ratio. */
-  function fitImageDimensions(naturalW, naturalH, maxW, maxH) {
-    if (!naturalW || !naturalH) return { width: maxW, height: maxH };
-    const scale = Math.min(maxW / naturalW, maxH / naturalH);
-    return {
-      width: naturalW * scale,
-      height: naturalH * scale,
-    };
-  }
-
-  function centeredMediaX(containerX, containerW, mediaW) {
-    return containerX + (containerW - mediaW) / 2;
-  }
-
-  function reviewMediaKey(row, index = 0) {
-    if (row?.id != null) return String(row.id);
-    if (row?.review_id != null) return String(row.review_id);
-    const j = row?.journey_id ?? row?.journeyId ?? '';
-    const p = row?.poi_id ?? '';
-    const t = row?.created_at ?? '';
-    if (j || p || t) return `${j}|${p}|${t}`;
-    return `idx-${index}`;
-  }
-
-  /**
-   * Resolve poster JPEG (pj_snapshots) and screen-recording URL (snap_videos) per review.
-   */
   function videoDurationLabel(row) {
     const duration = Number(row.duration_seconds ?? row.durationSeconds ?? 0);
     if (duration > 0) return `${duration.toFixed(1)}s`;
     return formatReviewDuration(duration);
-  }
-
-  async function preparePdfMediaMaps(rows) {
-    const imageMap = new Map();
-    const videoMetaMap = new Map();
-    await Promise.all(
-      rows.map(async (row, index) => {
-        const key = reviewMediaKey(row, index);
-        const videoUrl = getReviewVideoUrl(row);
-        if (videoUrl) {
-          videoMetaMap.set(key, {
-            url: videoUrl,
-            duration: videoDurationLabel(row),
-          });
-        }
-        try {
-          const imageMeta = await imageMetaForReview(row);
-          if (imageMeta) imageMap.set(key, imageMeta);
-        } catch {
-          /* poster / snapshot optional */
-        }
-      })
-    );
-    return { imageMap, videoMetaMap };
-  }
-
-  function drawPdfVideoPlayTile(doc, containerX, y, containerW, maxH, videoUrl, thumbMeta) {
-    let tileX = containerX;
-    let tileW = containerW;
-    let tileH = maxH;
-    if (thumbMeta?.dataUrl && thumbMeta.width && thumbMeta.height) {
-      const fitted = fitImageDimensions(thumbMeta.width, thumbMeta.height, containerW, maxH);
-      tileW = fitted.width;
-      tileH = fitted.height;
-      tileX = centeredMediaX(containerX, containerW, tileW);
-    }
-
-    let drewThumb = false;
-    if (thumbMeta?.dataUrl) {
-      try {
-        const fmt = thumbMeta.dataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(thumbMeta.dataUrl, fmt, tileX, y, tileW, tileH);
-        drewThumb = true;
-      } catch {
-        drewThumb = false;
-      }
-    }
-    if (!drewThumb) {
-      doc.setFillColor(15, 23, 42);
-      doc.rect(tileX, y, tileW, tileH, 'F');
-    }
-    const cx = tileX + tileW / 2;
-    const cy = y + tileH / 2;
-    const r = Math.min(tileW, tileH) * 0.1;
-    doc.setFillColor(255, 255, 255);
-    doc.circle(cx, cy, r, 'F');
-    doc.setFillColor(30, 58, 138);
-    doc.triangle(
-      cx - r * 0.35,
-      cy - r * 0.5,
-      cx - r * 0.35,
-      cy + r * 0.5,
-      cx + r * 0.55,
-      cy,
-      'F'
-    );
-    doc.setFontSize(8);
-    doc.setTextColor(255, 255, 255);
-    doc.text('Tap to play', cx, y + tileH - 3.5, { align: 'center' });
-    if (videoUrl && typeof doc.link === 'function') {
-      doc.link(tileX, y, tileX + tileW, y + tileH, { url: videoUrl });
-    }
-    return tileH;
-  }
-
-  /**
-   * @returns {number} updated y position (mm)
-   */
-  function drawReviewMediaBlock(doc, {
-    row,
-    index,
-    imageMap,
-    videoMetaMap,
-    x,
-    y,
-    imgW,
-    imgH,
-    pageBottom = 285,
-  }) {
-    const key = reviewMediaKey(row, index);
-    const videoMeta = videoMetaMap.get(key);
-    const imgMeta = imageMap.get(key);
-    let cursorY = y;
-
-    if (videoMeta) {
-      const videoThumbH = imgMeta
-        ? fitImageDimensions(imgMeta.width, imgMeta.height, imgW, imgH).height
-        : imgH;
-      if (cursorY + videoThumbH + 14 > pageBottom) {
-        doc.addPage();
-        cursorY = 16;
-      }
-      doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Screen recording', x, cursorY);
-      cursorY += 5;
-      const drawnVideoH = drawPdfVideoPlayTile(
-        doc,
-        x,
-        cursorY,
-        imgW,
-        imgH,
-        videoMeta.url,
-        imgMeta ?? null
-      );
-      cursorY += drawnVideoH + 3;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(51, 65, 85);
-      doc.text(`Duration: ${videoMeta.duration} — opens video in browser`, x, cursorY);
-      cursorY += 5;
-      if (imgMeta && !String(row?.image_path ?? '').includes('_poster')) {
-        doc.setFontSize(10);
-        doc.setTextColor(15, 23, 42);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Snapshot', x, cursorY);
-        cursorY += 5;
-        const snapMaxH = Math.min(45, imgH * 0.55);
-        const { width: snapW, height: snapH } = fitImageDimensions(
-          imgMeta.width,
-          imgMeta.height,
-          imgW,
-          snapMaxH
-        );
-        if (cursorY + snapH + 4 > pageBottom) {
-          doc.addPage();
-          cursorY = 16;
-        }
-        const snapX = centeredMediaX(x, imgW, snapW);
-        const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(imgMeta.dataUrl, fmt, snapX, cursorY, snapW, snapH);
-        cursorY += snapH + 4;
-      }
-      return cursorY;
-    }
-
-    if (imgMeta) {
-      const { width: snapW, height: snapH } = fitImageDimensions(
-        imgMeta.width,
-        imgMeta.height,
-        imgW,
-        imgH
-      );
-      if (cursorY + snapH + 10 > pageBottom) {
-        doc.addPage();
-        cursorY = 16;
-      }
-      doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Snapshot', x, cursorY);
-      cursorY += 5;
-      const snapX = centeredMediaX(x, imgW, snapW);
-      const fmt = imgMeta.dataUrl.includes('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(imgMeta.dataUrl, fmt, snapX, cursorY, snapW, snapH);
-      cursorY += snapH + 4;
-      return cursorY;
-    }
-
-    doc.setFontSize(9);
-    doc.setTextColor(220, 38, 38);
-    doc.setFont('helvetica', 'normal');
-    const label = reviewHasVideo(row) ? 'Screen recording unavailable' : 'Snapshot unavailable';
-    doc.text(label, x, cursorY);
-    return cursorY + 6;
   }
 
   function groupByJourney(rows) {
@@ -466,115 +216,25 @@ export function createReviewsPanel(container) {
   }
 
   async function generateJourneyPDF(journeyGroup) {
-    await loadJsPDF();
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const now = new Date();
-    const reviewer = journeyGroup.user;
     const rows = getCompleteJourneyStops(allRows, journeyGroup.journeyId);
     const journeyTitle =
       journeyGroup.displayName ?? getJourneyDisplayNameById(journeyGroup.journeyId, rows);
-    const { imageMap, videoMetaMap } = await preparePdfMediaMaps(rows);
-    const ratings = rows.map((r) => ratingValue(r)).filter((r) => r != null);
-    const avgRating = ratings.length
-      ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(2)
-      : 'N/A';
-    const created = rows[0]?.created_at
-      ? formatEasternDateTime(rows[0].created_at)
-      : formatEasternDateTime(now);
+    const journeyRow = getJourneyRowById(journeyGroup.journeyId);
+    const detail = computeJourneyPdfDetail(journeyRow, rows);
+    const userEmail =
+      journeyGroup.user
+      ?? journeyRow?.user_email
+      ?? journeyRow?.user_name
+      ?? rows[0]?.journey_user_email
+      ?? rows[0]?.journey_user_name
+      ?? 'Guest';
 
-    const pageW = 210;
-    const margin = 14;
-    const contentW = pageW - margin * 2;
-    let y = 0;
-
-    doc.setFillColor(30, 58, 138);
-    doc.rect(0, 0, pageW, 34, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text('Spatial Navigation Report', margin, 14);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text('POIs Journey - Visual Tour Summary', margin, 22);
-    doc.setFontSize(9);
-    doc.text(`Date: ${created}`, pageW - margin, 14, { align: 'right' });
-    doc.text(`User: ${reviewer}`, pageW - margin, 20, { align: 'right' });
-    doc.text(`Journey: ${journeyTitle}`, pageW - margin, 26, { align: 'right' });
-
-    y = 42;
-    doc.setTextColor(30, 58, 138);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(`Stops Visited: ${rows.length}   |   Avg Rating: ${avgRating}`, margin, y);
-    y += 8;
-    doc.setDrawColor(220);
-    doc.line(margin, y, pageW - margin, y);
-    y += 8;
-
-    for (let idx = 0; idx < rows.length; idx += 1) {
-      const row = rows[idx];
-      const rating = ratingValue(row);
-      const sentiment = sentimentLabel(row);
-      const distance = distanceLabel(row);
-      const reviewBody = reviewText(row) || 'No review text';
-      const when = row.created_at ? formatEasternDateTime(row.created_at) : 'Unknown date';
-      const stopName = row.poi_name ?? row.pj_pois?.poi_name ?? row.poi_id ?? 'POI';
-
-      if (y + 70 > 285) {
-        doc.addPage();
-        y = 16;
-      }
-
-      doc.setFontSize(12);
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Stop ${idx + 1}: ${stopName}`, 14, y);
-      y += 6;
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(51, 65, 85);
-      doc.setFontSize(10);
-      doc.text(`Distance: ${distance}   Sentiment: ${sentiment}   Rating: ${rating == null ? 'N/A' : `[${rating}/5]`}`, 14, y);
-      y += 5;
-      doc.text(`Date: ${when}`, 14, y);
-      y += 6;
-      const bodyLines = doc.splitTextToSize(reviewBody, 180);
-      doc.text(bodyLines, 14, y);
-      y += bodyLines.length * 5 + 4;
-
-      y = drawReviewMediaBlock(doc, {
-        row,
-        index: idx,
-        imageMap,
-        videoMetaMap,
-        x: margin,
-        y,
-        imgW: contentW,
-        imgH: 85,
-      });
-
-      doc.setDrawColor(220);
-      doc.line(14, y, 196, y);
-      y += 6;
-    }
-    doc.setFontSize(9);
-    doc.setTextColor(148, 163, 184);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Generated by SpaceCheck XR Dashboard', 14, y);
-
-    const pdfBlob = doc.output('blob');
-    const blobUrl = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `POIs_Journey_${sanitizeJourneyFilename(journeyTitle)}.pdf`;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-
-    setTimeout(() => {
-      a.remove();
-      URL.revokeObjectURL(blobUrl);
-    }, 2000);
+    await generateJourneyPdfReport({
+      detail,
+      reviews: rows,
+      userEmail: String(userEmail),
+      fileName: `SpaceCheck_XR_Report_${sanitizeJourneyFilename(journeyTitle)}.pdf`,
+    });
   }
 
   function applyFilters(rows) {
@@ -764,6 +424,7 @@ export function createReviewsPanel(container) {
       }
       const raw = await fetchAllJourneyReviews();
       allRows = await hydrateJourneyRegistry(raw);
+      preloadJsPDF();
       if (!allRows.length) {
         renderFilterOptions([]);
         renderSummary([]);

@@ -126,6 +126,13 @@ export function storagePublicUrl(bucket, path, bucketForNormalize = bucket) {
   return `${base}/storage/v1/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
 }
 
+/** Prefer storage path URL, else fall back to stored public URL column. */
+export function resolveStoragePublicUrl(bucket, path, fallbackUrl) {
+  const fromPath = path ? storagePublicUrl(bucket, path) : '';
+  if (fromPath) return fromPath;
+  return String(fallbackUrl ?? '').trim();
+}
+
 /** Resolve screen-recording URLs from `snap_videos` (video_url / video_path). */
 export function getVideoCandidates(row, bucket = 'snap_videos') {
   const base = String(SUPABASE_URL || '').replace(/\/$/, '');
@@ -506,7 +513,9 @@ export function fetchJourneysByIds(journeyIds = []) {
   const ids = Array.from(new Set((journeyIds || []).filter(Boolean)));
   if (!ids.length) return Promise.resolve([]);
   const inList = ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(',');
-  return query(`pj_journeys?select=id,user_name,user_email,status,completed_at&id=in.(${inList})`);
+  return query(
+    `pj_journeys?select=id,user_name,user_email,status,started_at,completed_at,total_pois,completed_pois&id=in.(${inList})`,
+  );
 }
 
 export function fetchAllJourneys() {

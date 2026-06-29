@@ -47,6 +47,11 @@ export async function hydrateJourneyRegistry(reviewRows) {
 }
 
 /** @param {string} journeyId */
+export function getJourneyRowById(journeyId) {
+  return metaById.get(String(journeyId))?.journeyRow ?? null;
+}
+
+/** @param {string} journeyId */
 export function getJourneyDisplayNameById(journeyId, fallbackReviews = []) {
   const meta = metaById.get(String(journeyId));
   if (meta?.displayName) return meta.displayName;
