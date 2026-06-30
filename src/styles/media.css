@@ -261,6 +261,12 @@ html.theme-dark .toast--error {
   padding: 24px;
 }
 
+.poi-add-dialog.media-modal-overlay.hidden,
+.media-modal-overlay.poi-add-dialog.hidden,
+.media-modal-overlay.hidden {
+  display: none !important;
+}
+
 .media-modal-overlay .poi-add-dialog-backdrop {
   position: absolute;
   inset: 0;
