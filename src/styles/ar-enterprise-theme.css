@@ -68,7 +68,7 @@
 
   --chrome-gap: 10px;
   --topbar-h: 44px;
-  --bottombar-h: 36px;
+  --bottombar-h: 0px;
   --drawer-w: 300px;
   --nav-float-width: 60px;
   --float-radius: 14px;
@@ -120,7 +120,6 @@ body,
 
 /* ── Floating chrome — pure white (#ffffff) ── */
 .ar-enterprise-shell .topbar,
-.ar-enterprise-shell .bottombar,
 .ar-enterprise-shell .sidebar-nav-block,
 .ar-enterprise-shell .sidebar-nav-block.float-glass {
   background: #ffffff !important;
@@ -224,13 +223,57 @@ body,
   -webkit-text-fill-color: var(--text-1) !important;
 }
 
-.ar-enterprise-shell .topbar-date {
+.ar-enterprise-shell .topbar-right {
+  gap: 12px;
+}
+
+.ar-enterprise-shell .topbar-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--clay-raised);
+  box-shadow: var(--shadow-clay-raised-sm);
+  border: 1px solid var(--border-base);
+}
+
+.ar-enterprise-shell .topbar-stat-chip .stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   color: #000000 !important;
 }
 
-.ar-enterprise-shell .topbar-time {
+.ar-enterprise-shell .topbar-stat-chip .stat-value {
   font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-1) !important;
+}
+
+.ar-enterprise-shell .topbar-theme-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-base);
+  background: var(--clay-raised);
+  color: var(--clay-black);
+  box-shadow: var(--shadow-clay-raised-sm);
+  cursor: pointer;
+}
+
+.ar-enterprise-shell .topbar-theme-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ar-enterprise-shell .topbar-theme-btn:hover {
+  background: var(--clay-pressed);
 }
 
 .ar-enterprise-shell .topbar-logout {
@@ -277,13 +320,6 @@ body,
 
 .ar-enterprise-shell .sidebar-nav-block .sidebar-btn.active svg {
   color: var(--text-inverse) !important;
-}
-
-.ar-enterprise-shell .bottombar {
-  height: var(--bottombar-h);
-  min-height: var(--bottombar-h);
-  padding: 0 20px !important;
-  border-radius: var(--float-radius) !important;
 }
 
 .ar-enterprise-shell .stat-label {
@@ -682,7 +718,6 @@ body,
 .ar-enterprise-shell .field-label,
 .ar-enterprise-shell .stat-label,
 .ar-enterprise-shell .stat-value,
-.ar-enterprise-shell .topbar-date,
 .ar-enterprise-shell .user-tab,
 .ar-enterprise-shell .user-empty,
 .ar-enterprise-shell .reviews-empty,

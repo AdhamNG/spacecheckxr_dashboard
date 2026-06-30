@@ -1,11 +1,16 @@
 /**
  * Dashboard Shell
  * SpaceCheck XR dashboard layout:
- *   top bar · sidebar · 3D viewport · right panel · bottom stats bar
+ *   top bar · sidebar · 3D viewport · right panel
  */
 import { BRAND_NAME, brandLogoHtml } from '../config/brand.js';
 import { fetchCounts } from '../services/supabase.js';
-import { formatEasternClock, formatEasternDateHeader } from '../utils/journey-display.js';
+import {
+  applyDashboardTheme,
+  getDashboardTheme,
+  syncThemeButton,
+  toggleDashboardTheme,
+} from '../utils/dashboard-theme.js';
 
 const SIDEBAR_ITEMS = [
   { id: 'pois',      icon: svgPin,      label: 'POIs' },
@@ -18,14 +23,12 @@ const SIDEBAR_ITEMS = [
 ];
 
 let activePanel = 'pois';
-let uptimeStart = null;
-let clockTimer = null;
 /** @type {((panelId: string) => void) | null} */
 let onPanelChangeCallback = null;
 
 export function createDashboard(container) {
   const el = document.createElement('div');
-  el.className = 'dashboard hidden immersive-shell ar-enterprise-shell';
+  el.className = 'dashboard hidden immersive-shell';
   el.id = 'dashboard';
 
   el.innerHTML = `
@@ -35,8 +38,11 @@ export function createDashboard(container) {
         <span class="topbar-logo-text">${BRAND_NAME}</span>
       </div>
       <div class="topbar-right">
-        <span class="topbar-date" id="topbar-date"></span>
-        <span class="topbar-time" id="topbar-time"></span>
+        <div class="topbar-stat-chip stat-chip" title="Total POIs">
+          <span class="stat-label">POIs</span>
+          <span class="stat-value" id="stat-pois">--</span>
+        </div>
+        <button type="button" class="topbar-theme-btn" id="topbar-theme"></button>
         <button type="button" class="topbar-logout" id="topbar-logout" title="Sign out">Log out</button>
       </div>
     </header>
@@ -73,20 +79,6 @@ export function createDashboard(container) {
       <div class="panel-slot"        data-panel="submitted"  id="slot-submitted"></div>
     </aside>
 
-    <footer class="bottombar float-glass chrome-layer">
-      <div class="stat-chip">
-        <span class="stat-label">USERS</span>
-        <span class="stat-value" id="stat-users">--</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-label">POIs</span>
-        <span class="stat-value" id="stat-pois">--</span>
-      </div>
-      <div class="stat-chip">
-        <span class="stat-label">UPTIME</span>
-        <span class="stat-value" id="stat-uptime">00:00:00</span>
-      </div>
-    </footer>
   `;
 
   container.appendChild(el);
@@ -107,9 +99,20 @@ export function createDashboard(container) {
   const viewport3d = el.querySelector('#viewport-3d');
   const viewport2d = el.querySelector('#viewport-2d');
   const logoutBtn = el.querySelector('#topbar-logout');
+  const themeBtn = el.querySelector('#topbar-theme');
   let activeView = '3d';
   let onViewSwitch = null;
   let onLogoutCallback = null;
+
+  const initialTheme = applyDashboardTheme(el, getDashboardTheme());
+  syncThemeButton(themeBtn, initialTheme);
+
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const theme = toggleDashboardTheme(el);
+      syncThemeButton(themeBtn, theme);
+    });
+  }
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -154,15 +157,12 @@ export function createDashboard(container) {
     slots,
     show() {
       el.classList.remove('hidden');
-      uptimeStart = Date.now();
-      startClock(el);
-      refreshBottomStats(el);
+      refreshTopStats(el);
     },
     hide() {
       el.classList.add('hidden');
-      if (clockTimer) clearInterval(clockTimer);
     },
-    refreshStats() { refreshBottomStats(el); },
+    refreshStats() { refreshTopStats(el); },
     onViewSwitch(cb) { onViewSwitch = cb; },
     /** Fired when the right-hand sidebar panel changes (Map, POIs, Track, …). */
     onPanelChange(cb) {
@@ -196,42 +196,22 @@ function setActivePanel(panelId, dashEl) {
   if (onPanelChangeCallback) onPanelChangeCallback(panelId, drawerPanel);
 }
 
-function startClock(dashEl) {
-  const dateEl = dashEl.querySelector('#topbar-date');
-  const timeEl = dashEl.querySelector('#topbar-time');
-  const uptimeEl = dashEl.querySelector('#stat-uptime');
+async function refreshTopStats(dashEl) {
+  const poisEl = dashEl.querySelector('#stat-pois');
+  const chipEl = dashEl.querySelector('.topbar-stat-chip');
+  if (!poisEl) return;
 
-  function tick() {
-    const now = new Date();
-    dateEl.textContent = formatEasternDateHeader(now);
-    timeEl.textContent = formatEasternClock(now);
-    if (uptimeStart) {
-      const s = Math.floor((Date.now() - uptimeStart) / 1000);
-      const h = String(Math.floor(s / 3600)).padStart(2, '0');
-      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-      const sec = String(s % 60).padStart(2, '0');
-      uptimeEl.textContent = `${h}:${m}:${sec}`;
-    }
-  }
-
-  tick();
-  clockTimer = setInterval(tick, 1000);
-}
-
-async function refreshBottomStats(dashEl) {
   try {
     const c = await fetchCounts();
     if (c.missingEnv) {
-      dashEl.querySelector('#stat-users').textContent = '—';
-      dashEl.querySelector('#stat-pois').textContent = '—';
-      dashEl.querySelector('#stat-users').title = 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env';
-      dashEl.querySelector('#stat-pois').title = 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env';
+      poisEl.textContent = '—';
+      if (chipEl) {
+        chipEl.title = 'Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env';
+      }
       return;
     }
-    dashEl.querySelector('#stat-users').textContent = c.users;
-    dashEl.querySelector('#stat-pois').textContent = c.pois;
-    dashEl.querySelector('#stat-users').removeAttribute('title');
-    dashEl.querySelector('#stat-pois').removeAttribute('title');
+    poisEl.textContent = String(c.pois);
+    if (chipEl) chipEl.removeAttribute('title');
   } catch { /* silent */ }
 }
 
