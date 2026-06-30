@@ -39,8 +39,8 @@ export function createDashboard(container) {
       </div>
       <div class="topbar-right">
         <div class="topbar-stat-chip stat-chip" title="Total POIs">
-          <span class="stat-label">POIs</span>
           <span class="stat-value" id="stat-pois">--</span>
+          <span class="stat-label">Points of interest</span>
         </div>
         <button type="button" class="topbar-theme-btn" id="topbar-theme"></button>
         <button type="button" class="topbar-logout" id="topbar-logout" title="Sign out">Log out</button>

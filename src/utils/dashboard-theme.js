@@ -11,6 +11,8 @@ export function getDashboardTheme() {
   }
 }
 
+export const THEME_CHANGE_EVENT = 'scxr-theme-change';
+
 /**
  * @param {HTMLElement} dashEl
  * @param {DashboardTheme} theme
@@ -19,9 +21,12 @@ export function getDashboardTheme() {
 export function applyDashboardTheme(dashEl, theme) {
   const isLight = theme !== 'dark';
   dashEl.classList.toggle('ar-enterprise-shell', isLight);
+  document.documentElement.classList.toggle('theme-light', isLight);
+  document.documentElement.classList.toggle('theme-dark', !isLight);
   try {
     localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
   } catch { /* private browsing */ }
+  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: { theme: isLight ? 'light' : 'dark' } }));
   return isLight ? 'light' : 'dark';
 }
 

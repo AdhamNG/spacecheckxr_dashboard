@@ -21,6 +21,36 @@ let transformControls;
 let multisetAnchor;
 let isInitialized = false;
 let _container = null;
+let _themeListenerBound = false;
+
+function parseSceneClearColor() {
+  const raw = getComputedStyle(document.documentElement)
+    .getPropertyValue('--scene-clear-color')
+    .trim();
+  if (!raw) return 0x000000;
+  const hex = raw.startsWith('#') ? raw.slice(1) : raw;
+  const n = Number.parseInt(hex, 16);
+  return Number.isFinite(n) ? n : 0x000000;
+}
+
+function applySceneClearColor() {
+  if (!isInitialized || !renderer || !scene) return;
+  const color = parseSceneClearColor();
+  renderer.setClearColor(color, 1);
+  scene.background = new THREE.Color(color);
+  if (scene.fog) scene.fog.color.setHex(color);
+}
+
+/** Sync Three.js clear color with CSS theme (--scene-clear-color). */
+export function syncSceneThemeBackground() {
+  applySceneClearColor();
+}
+
+function bindThemeBackgroundListener() {
+  if (_themeListenerBound) return;
+  window.addEventListener('scxr-theme-change', applySceneClearColor);
+  _themeListenerBound = true;
+}
 
 /** Index of POI last clicked on the 3D canvas or list; press F to fly the camera there. */
 let lastPickedPoiIndex = -1;
@@ -226,8 +256,9 @@ export function initScene(container) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
-  /** Match CSS --bg-mesh / enterprise-theme viewport background */
-  const SCENE_BG = 0xffffff;
+  /** Match CSS --scene-clear-color (white clay / Navme black scene). */
+  bindThemeBackgroundListener();
+  const SCENE_BG = parseSceneClearColor();
   renderer.setClearColor(SCENE_BG, 1);
   container.appendChild(renderer.domElement);
 

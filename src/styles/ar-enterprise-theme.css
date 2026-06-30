@@ -3,7 +3,8 @@
    Same layout / padding as enterprise shell — clay depth only
    ═══════════════════════════════════════════════════ */
 
-:root {
+.ar-enterprise-shell {
+  --scene-clear-color: #ffffff;
   --clay-chrome: #ffffff;
   --clay-canvas: #ffffff;
   --clay-bg: #e4e4e4;
@@ -104,9 +105,16 @@
   --brand-amber: #5c5c5c;
 }
 
-html,
-body,
-#app,
+html.theme-light {
+  --scene-clear-color: #ffffff;
+  --bg-deep: #e4e4e4;
+  --bg-app-gradient: #e4e4e4;
+  --text-1: #000000;
+}
+
+html.theme-light,
+html.theme-light body,
+html.theme-light #app,
 .ar-enterprise-shell {
   background: var(--bg-app-gradient) !important;
   background-color: var(--bg-deep) !important;
@@ -239,15 +247,16 @@ body,
 }
 
 .ar-enterprise-shell .topbar-stat-chip .stat-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
   color: #000000 !important;
 }
 
 .ar-enterprise-shell .topbar-stat-chip .stat-value {
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-1) !important;
 }
