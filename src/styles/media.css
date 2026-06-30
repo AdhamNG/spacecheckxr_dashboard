@@ -211,7 +211,7 @@
 
 .gizmo-mode-btn.active {
   border-color: var(--border-bright, rgba(255, 255, 255, 0.2));
-  color: var(--text-1, #f0f0f0);
+  color: #ffffff;
   background: var(--glass-item-bg-active, var(--clay-black-soft, #2d2d2d));
   box-shadow: none;
 }

@@ -576,6 +576,25 @@ body,
   color: #ffffff !important;
 }
 
+.ar-enterprise-shell .gizmo-mode-btn {
+  background: var(--clay-raised) !important;
+  border: 1px solid var(--border-base) !important;
+  color: var(--text-2) !important;
+}
+
+.ar-enterprise-shell .gizmo-mode-btn:hover {
+  color: var(--text-1) !important;
+  background: var(--clay-floating, #f0f0f0) !important;
+}
+
+.ar-enterprise-shell .gizmo-mode-btn.active {
+  background: var(--clay-black) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
 /* Users + Submitted — centered title only */
 .ar-enterprise-shell .user-panel .nav-title {
   display: block !important;
