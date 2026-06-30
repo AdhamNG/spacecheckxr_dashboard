@@ -13,21 +13,27 @@ export function getDashboardTheme() {
 
 export const THEME_CHANGE_EVENT = 'scxr-theme-change';
 
+/** @returns {DashboardTheme} */
+export function applyRootTheme(theme) {
+  const isLight = theme !== 'dark';
+  document.documentElement.classList.toggle('theme-light', isLight);
+  document.documentElement.classList.toggle('theme-dark', !isLight);
+  try {
+    localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
+  } catch { /* private browsing */ }
+  return isLight ? 'light' : 'dark';
+}
+
 /**
  * @param {HTMLElement} dashEl
  * @param {DashboardTheme} theme
  * @returns {DashboardTheme}
  */
 export function applyDashboardTheme(dashEl, theme) {
-  const isLight = theme !== 'dark';
-  dashEl.classList.toggle('ar-enterprise-shell', isLight);
-  document.documentElement.classList.toggle('theme-light', isLight);
-  document.documentElement.classList.toggle('theme-dark', !isLight);
-  try {
-    localStorage.setItem(STORAGE_KEY, isLight ? 'light' : 'dark');
-  } catch { /* private browsing */ }
-  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: { theme: isLight ? 'light' : 'dark' } }));
-  return isLight ? 'light' : 'dark';
+  const resolved = applyRootTheme(theme);
+  dashEl.classList.toggle('ar-enterprise-shell', resolved === 'light');
+  window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: { theme: resolved } }));
+  return resolved;
 }
 
 /**

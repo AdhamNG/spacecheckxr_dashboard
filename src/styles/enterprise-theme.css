@@ -1285,8 +1285,8 @@ body,
   text-shadow: none !important;
 }
 
-/* Login — same HUD canvas as dashboard */
-.form-overlay {
+/* Login — dark HUD (see login-theme.css for theme-specific overrides) */
+html.theme-dark .form-overlay {
   background-color: var(--bg-deep) !important;
   background-image: var(--bg-app-gradient), url('/login-spatial-bg.svg');
   background-size: cover, cover;
@@ -1298,7 +1298,7 @@ body,
   padding: 24px !important;
 }
 
-.form-overlay--glass .form-card {
+html.theme-dark .form-overlay--glass .form-card {
   width: min(400px, 92vw) !important;
   padding: 28px 28px 26px !important;
   background: var(--chrome-panel-strong) !important;

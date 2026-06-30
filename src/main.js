@@ -6,7 +6,9 @@ import './styles/global.css';
 import './styles/enterprise-theme.css';
 import './styles/ar-enterprise-theme.css';
 import './styles/navme-dark-theme.css';
+import './styles/login-theme.css';
 import './styles/media.css';
+import { applyRootTheme, getDashboardTheme } from './utils/dashboard-theme.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
@@ -85,6 +87,8 @@ async function createMapGltfLoader() {
   loader.setMeshoptDecoder(MeshoptDecoder);
   return loader;
 }
+
+applyRootTheme(getDashboardTheme());
 
 const dashboard = createDashboard(app);
 dashboard.onLogout(() => {

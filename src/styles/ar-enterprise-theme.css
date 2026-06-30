@@ -686,36 +686,6 @@ html.theme-light #app,
   color: #000000 !important;
 }
 
-/* Login — clay card */
-.form-card {
-  background: var(--clay-surface) !important;
-  border: 1px solid var(--border-base) !important;
-  border-radius: var(--float-radius) !important;
-  box-shadow: var(--shadow-clay-raised) !important;
-  color: var(--text-1) !important;
-}
-
-.form-card h1,
-.form-brand-title,
-.form-card label,
-.form-card .subtitle {
-  color: #000000 !important;
-}
-
-.form-card input {
-  background: var(--clay-raised) !important;
-  border: 1px solid var(--border-base) !important;
-  border-radius: var(--radius-sm) !important;
-  color: var(--text-1) !important;
-  box-shadow: var(--shadow-clay-inset) !important;
-}
-
-.form-card .btn-primary {
-  background: var(--clay-black) !important;
-  color: var(--text-inverse) !important;
-  box-shadow: var(--shadow-clay-black) !important;
-}
-
 /* Readable black text across panels */
 .ar-enterprise-shell .review-meta,
 .ar-enterprise-shell .review-user,
@@ -739,29 +709,6 @@ html.theme-light #app,
 
 .ar-enterprise-shell .review-card-top {
   justify-content: flex-end;
-}
-
-.form-card::before,
-.form-card::after {
-  display: none !important;
-  border: none !important;
-}
-
-/* Sign in — grey clay button (not blue) */
-.form-overlay .btn-start,
-.form-card .btn-start {
-  background: #8a8a8a !important;
-  color: #ffffff !important;
-  border: 1px solid #6e6e6e !important;
-  box-shadow: var(--shadow-clay-raised-sm) !important;
-  text-shadow: none !important;
-}
-
-.form-overlay .btn-start:hover,
-.form-card .btn-start:hover {
-  background: #757575 !important;
-  border-color: #5c5c5c !important;
-  transform: none !important;
 }
 
 /* Scrollbars — black (not blue) */
