@@ -16,14 +16,47 @@
   border-radius: var(--radius-sm, 8px);
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-1, #f0f0f0);
-  background: var(--clay-raised, #262626);
-  border: 1px solid var(--border-base, rgba(255, 255, 255, 0.12));
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #eef6ff;
+  background: #182238;
+  border: 1px solid rgba(121, 201, 255, 0.24);
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.25s, transform 0.25s;
-  max-width: 360px;
-  box-shadow: var(--shadow-clay-raised-sm);
+  max-width: min(360px, calc(100vw - 48px));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+html.theme-light .toast {
+  color: #121212;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+html.theme-light .toast--success {
+  background: #f0fdf4;
+  border-color: rgba(22, 163, 74, 0.35);
+  color: #14532d;
+}
+
+html.theme-light .toast--error {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #991b1b;
+}
+
+html.theme-dark .toast--success {
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #bbf7d0;
+}
+
+html.theme-dark .toast--error {
+  background: #2a1820;
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fecaca;
 }
 
 .toast--visible { opacity: 1; transform: translateY(0); }

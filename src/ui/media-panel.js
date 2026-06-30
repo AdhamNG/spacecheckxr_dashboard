@@ -239,24 +239,38 @@ export function createMediaPanel(container, options = {}) {
 
   panel.querySelector('#btn-delete-media').addEventListener('click', async () => {
     if (selectedIndex < 0) return;
-    const item = mediaData[selectedIndex];
+    const indexToDelete = selectedIndex;
+    const item = mediaData[indexToDelete];
     if (!confirm(`Delete "${item.label}"?`)) return;
     const deleteStorage = confirm('Also delete file from storage?');
+
     try {
-      await removeMediaFromDb(selectedIndex);
-      if (deleteStorage) {
-        const path = storagePathFromPublicUrl(item.media_url);
-        if (path) await deleteProjectMediaFile(path);
-      }
+      await removeMediaFromDb(indexToDelete);
     } catch (err) {
       showToast(err.message, 'error');
       return;
     }
-    deleteMediaFromScene(selectedIndex);
+
+    let storageWarning = '';
+    if (deleteStorage) {
+      try {
+        const path = storagePathFromPublicUrl(item.media_url);
+        if (path) await deleteProjectMediaFile(path);
+      } catch (err) {
+        storageWarning = err.message;
+      }
+    }
+
+    deleteMediaFromScene(indexToDelete);
     deselectMedia();
     rebuildList();
     onMediaChange?.();
-    showToast('Media deleted', 'success');
+
+    if (storageWarning) {
+      showToast(`Media removed. Storage delete failed: ${storageWarning}`, 'error');
+    } else {
+      showToast('Media deleted', 'success');
+    }
   });
 
   function onMediaCoordInput() {

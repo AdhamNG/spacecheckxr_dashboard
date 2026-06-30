@@ -67,12 +67,16 @@ export async function uploadProjectMedia(file, poiType, mediaType) {
 export async function deleteProjectMediaFile(objectPath) {
   if (!objectPath) return;
   ensureConfig();
-  const url = `${getSupabaseUrl().replace(/\/$/, '')}/storage/v1/object/${BUCKET}`;
+  const base = getSupabaseUrl().replace(/\/$/, '');
+  const encoded = objectPath.split('/').map((s) => encodeURIComponent(s)).join('/');
+  const url = `${base}/storage/v1/object/${BUCKET}/${encoded}`;
 
   const res = await fetch(url, {
     method: 'DELETE',
-    headers: storageHeaders('application/json'),
-    body: JSON.stringify([objectPath]),
+    headers: {
+      apikey: getSupabaseAnonKey(),
+      Authorization: `Bearer ${getSupabaseAnonKey()}`,
+    },
   });
 
   if (!res.ok) {
