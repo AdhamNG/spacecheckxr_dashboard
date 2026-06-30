@@ -282,6 +282,14 @@ body,
   color: var(--accent);
 }
 
+.scene-mesh-mode-bar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 120;
+  pointer-events: none;
+}
+
 .scene-mesh-mode {
   display: flex;
   align-items: center;

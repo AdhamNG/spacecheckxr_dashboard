@@ -54,23 +54,30 @@ export function createSceneToolbar(viewportBody, options = {}) {
         ${iconClose()}
       </button>
     </div>
-    <div class="scene-mesh-mode hidden" id="scene-mesh-mode" role="group" aria-label="Map mesh type">
+    <p class="scene-tool-hint hidden" id="scene-tool-hint" role="status"></p>
+  `;
+
+  const meshModeBar = document.createElement('div');
+  meshModeBar.className = 'scene-mesh-mode-bar chrome-layer hidden';
+  meshModeBar.id = 'scene-mesh-mode-bar';
+  meshModeBar.innerHTML = `
+    <div class="scene-mesh-mode float-glass" id="scene-mesh-mode" role="group" aria-label="Map mesh type">
       <span class="scene-mesh-mode-label">Mesh</span>
       <div class="scene-mesh-tabs">
         <button type="button" class="scene-mesh-tab" data-mesh-mode="raw" aria-pressed="false">Raw</button>
         <button type="button" class="scene-mesh-tab active" data-mesh-mode="textured" aria-pressed="true">Textured</button>
       </div>
     </div>
-    <p class="scene-tool-hint hidden" id="scene-tool-hint" role="status"></p>
   `;
 
   viewportBody.appendChild(root);
+  viewportBody.appendChild(meshModeBar);
 
   const hintEl = root.querySelector('#scene-tool-hint');
   const cancelBtn = root.querySelector('#scene-tool-cancel');
   const buttons = root.querySelectorAll('.scene-tool-btn');
-  const meshModeRoot = root.querySelector('#scene-mesh-mode');
-  const meshModeTabs = root.querySelectorAll('.scene-mesh-tab');
+  const meshModeRoot = meshModeBar.querySelector('#scene-mesh-mode');
+  const meshModeTabs = meshModeBar.querySelectorAll('.scene-mesh-tab');
 
   const HINTS = {
     walk: 'Walk mode — click the map to go there. Press Exit when finished.',
@@ -135,7 +142,7 @@ export function createSceneToolbar(viewportBody, options = {}) {
   }
 
   function setMeshModeToggleVisible(visible) {
-    meshModeRoot?.classList.toggle('hidden', !visible);
+    meshModeBar.classList.toggle('hidden', !visible);
   }
 
   /** @param {boolean} busy */

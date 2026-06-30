@@ -601,7 +601,7 @@ html.theme-light #app,
   box-shadow: var(--shadow-clay-raised) !important;
 }
 
-.ar-enterprise-shell .scene-mesh-mode {
+.ar-enterprise-shell .scene-mesh-mode-bar .scene-mesh-mode {
   background: #ffffff !important;
   border: 1px solid var(--border-base) !important;
   box-shadow: var(--shadow-clay-raised) !important;
