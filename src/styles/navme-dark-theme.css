@@ -209,6 +209,18 @@ html.theme-dark .immersive-shell .scene-toolbar-inner {
   box-shadow: var(--shadow-float-sm) !important;
 }
 
+html.theme-dark .immersive-shell .scene-mesh-mode {
+  background: rgba(10, 14, 28, 0.88) !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-float-sm) !important;
+}
+
+html.theme-dark .immersive-shell .scene-mesh-tab.active {
+  background: rgba(121, 201, 255, 0.16) !important;
+  color: var(--cyan) !important;
+  border-color: var(--border-bright) !important;
+}
+
 html.theme-dark .immersive-shell .scene-tool-btn {
   color: var(--text-2) !important;
 }

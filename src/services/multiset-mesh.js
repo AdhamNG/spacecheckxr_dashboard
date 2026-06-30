@@ -167,6 +167,34 @@ export async function downloadMeshByKey(token, key) {
   return tryDownload(token, key);
 }
 
+/** @typedef {'raw' | 'textured'} MapMeshVariant */
+
+/**
+ * True when raw Mesh.glb and TexturedMesh.glb resolve to different storage keys.
+ * @param {{ rawCandidates?: string[], texturedCandidates?: string[] }} meshKeys
+ */
+export function hasDistinctMeshVariants(meshKeys) {
+  const raw = meshKeys.rawCandidates ?? [];
+  const textured = meshKeys.texturedCandidates ?? [];
+  if (!raw.length || !textured.length) return false;
+  const rawSet = new Set(raw);
+  return textured.some((key) => !rawSet.has(key));
+}
+
+/**
+ * Download one map mesh variant (raw or textured only).
+ * @returns {Promise<{ buffer: ArrayBuffer|null, key: string|null }>}
+ */
+export async function downloadMapMeshVariant(token, meshKeys, variant) {
+  const candidates =
+    variant === 'raw' ? meshKeys.rawCandidates ?? [] : meshKeys.texturedCandidates ?? [];
+  for (const key of candidates) {
+    const buffer = await downloadMeshByKey(token, key);
+    if (buffer) return { buffer, key };
+  }
+  return { buffer: null, key: null };
+}
+
 /**
  * Download raw Mesh.glb only (fast geometry pass).
  * @returns {Promise<ArrayBuffer|null>}

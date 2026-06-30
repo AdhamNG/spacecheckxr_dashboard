@@ -601,6 +601,28 @@ html.theme-light #app,
   box-shadow: var(--shadow-clay-raised) !important;
 }
 
+.ar-enterprise-shell .scene-mesh-mode {
+  background: #ffffff !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-clay-raised) !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tabs {
+  background: var(--clay-pressed) !important;
+  box-shadow: var(--shadow-clay-inset) !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tab {
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tab.active {
+  background: var(--clay-black) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
 .ar-enterprise-shell .scene-tool-btn {
   color: var(--text-2) !important;
   border-radius: 999px !important;

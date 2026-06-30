@@ -12,19 +12,26 @@ const MODE_PANEL = {
   'add-media': 'media',
 };
 
+/** @typedef {'raw' | 'textured'} MapMeshMode */
+
 /**
  * @param {HTMLElement} viewportBody
  * @param {{
  *   onModeChange?: (mode: SceneToolMode) => void,
  *   onCancel?: () => void,
  *   onToolActivate?: (mode: SceneToolMode, panelId: 'pois' | 'media' | null) => void,
+ *   onMeshModeChange?: (mode: MapMeshMode) => void,
  * }} [options]
  */
 export function createSceneToolbar(viewportBody, options = {}) {
   const onModeChange = options.onModeChange;
   const onCancel = options.onCancel;
   const onToolActivate = options.onToolActivate;
+  const onMeshModeChange = options.onMeshModeChange;
   let activeMode = 'default';
+  /** @type {MapMeshMode} */
+  let activeMeshMode = 'textured';
+  let meshModeBusy = false;
 
   const root = document.createElement('div');
   root.className = 'scene-toolbar chrome-layer';
@@ -47,6 +54,13 @@ export function createSceneToolbar(viewportBody, options = {}) {
         ${iconClose()}
       </button>
     </div>
+    <div class="scene-mesh-mode hidden" id="scene-mesh-mode" role="group" aria-label="Map mesh type">
+      <span class="scene-mesh-mode-label">Mesh</span>
+      <div class="scene-mesh-tabs">
+        <button type="button" class="scene-mesh-tab" data-mesh-mode="raw" aria-pressed="false">Raw</button>
+        <button type="button" class="scene-mesh-tab active" data-mesh-mode="textured" aria-pressed="true">Textured</button>
+      </div>
+    </div>
     <p class="scene-tool-hint hidden" id="scene-tool-hint" role="status"></p>
   `;
 
@@ -55,6 +69,8 @@ export function createSceneToolbar(viewportBody, options = {}) {
   const hintEl = root.querySelector('#scene-tool-hint');
   const cancelBtn = root.querySelector('#scene-tool-cancel');
   const buttons = root.querySelectorAll('.scene-tool-btn');
+  const meshModeRoot = root.querySelector('#scene-mesh-mode');
+  const meshModeTabs = root.querySelectorAll('.scene-mesh-tab');
 
   const HINTS = {
     walk: 'Walk mode — click the map to go there. Press Exit when finished.',
@@ -102,10 +118,50 @@ export function createSceneToolbar(viewportBody, options = {}) {
 
   cancelBtn.addEventListener('click', cancel);
 
+  function syncMeshModeTabs() {
+    meshModeTabs.forEach((btn) => {
+      const mode = /** @type {MapMeshMode} */ (btn.dataset.meshMode);
+      const on = mode === activeMeshMode;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.disabled = meshModeBusy;
+    });
+  }
+
+  /** @param {MapMeshMode} mode */
+  function setMeshMode(mode) {
+    activeMeshMode = mode === 'raw' ? 'raw' : 'textured';
+    syncMeshModeTabs();
+  }
+
+  function setMeshModeToggleVisible(visible) {
+    meshModeRoot?.classList.toggle('hidden', !visible);
+  }
+
+  /** @param {boolean} busy */
+  function setMeshModeBusy(busy) {
+    meshModeBusy = busy;
+    syncMeshModeTabs();
+  }
+
+  meshModeTabs.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (meshModeBusy) return;
+      const mode = /** @type {MapMeshMode} */ (btn.dataset.meshMode);
+      if (mode === activeMeshMode) return;
+      setMeshMode(mode);
+      onMeshModeChange?.(mode);
+    });
+  });
+
   return {
     element: root,
     setMode,
     cancel,
     getMode: () => activeMode,
+    setMeshMode,
+    setMeshModeToggleVisible,
+    setMeshModeBusy,
+    getMeshMode: () => activeMeshMode,
   };
 }

@@ -282,6 +282,65 @@ body,
   color: var(--accent);
 }
 
+.scene-mesh-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  pointer-events: auto;
+  background: var(--chrome-panel-strong) !important;
+  border-radius: 999px !important;
+  box-shadow: var(--shadow-float) !important;
+}
+
+.scene-mesh-mode-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.scene-mesh-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-deep);
+}
+
+.scene-mesh-tab {
+  min-width: 72px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.scene-mesh-tab:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.scene-mesh-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.scene-mesh-tab:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 .scene-tool-icon svg {
   display: block;
   width: 22px;
