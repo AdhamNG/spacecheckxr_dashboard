@@ -54,21 +54,70 @@ let onSceneMapClick = null;
 let placementPreview = null;
 
 /** Callback fired whenever the gizmo moves the attached object */
-let onGizmoDrag = null;
-/** Fired once when the user releases the gizmo after dragging */
-let onGizmoDragEnd = null;
+/** @type {Set<(transform: { position: {x:number,y:number,z:number}, rotation: {x:number,y:number,z:number}, scale: {x:number,y:number,z:number}, object?: THREE.Object3D }) => void>} */
+const gizmoDragListeners = new Set();
+/** @type {Set<() => void>} */
+const gizmoDragEndListeners = new Set();
+
+function notifyGizmoDrag() {
+  const obj = transformControls?.object;
+  if (!obj || gizmoDragListeners.size === 0) return;
+  const payload = {
+    position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+    rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z },
+    scale: { x: obj.scale.x, y: obj.scale.y, z: obj.scale.z },
+    object: obj,
+  };
+  for (const fn of gizmoDragListeners) {
+    try {
+      fn(payload);
+    } catch (err) {
+      console.error('[scene] gizmo drag listener failed:', err);
+    }
+  }
+}
+
+function notifyGizmoDragEnd() {
+  for (const fn of gizmoDragEndListeners) {
+    try {
+      fn();
+    } catch (err) {
+      console.error('[scene] gizmo drag-end listener failed:', err);
+    }
+  }
+}
 
 /**
- * Register a callback for gizmo drag events.
- * @param {(position: {x:number, y:number, z:number}) => void} cb
+ * Register a callback for gizmo drag events (multiple panels can listen).
+ * @param {(transform: { position: {x:number,y:number,z:number}, rotation: {x:number,y:number,z:number}, scale: {x:number,y:number,z:number}, object?: THREE.Object3D }) => void} cb
+ * @returns {() => void} unsubscribe
+ */
+export function addGizmoDragListener(cb) {
+  if (typeof cb !== 'function') return () => {};
+  gizmoDragListeners.add(cb);
+  return () => gizmoDragListeners.delete(cb);
+}
+
+/** @param {() => void} cb @returns {() => void} unsubscribe */
+export function addGizmoDragEndListener(cb) {
+  if (typeof cb !== 'function') return () => {};
+  gizmoDragEndListeners.add(cb);
+  return () => gizmoDragEndListeners.delete(cb);
+}
+
+/**
+ * Replace all gizmo drag listeners with a single callback (legacy).
+ * @param {(transform: {x:number, y:number, z:number}) => void} cb
  */
 export function setGizmoDragCallback(cb) {
-  onGizmoDrag = cb;
+  gizmoDragListeners.clear();
+  if (cb) gizmoDragListeners.add(cb);
 }
 
 /** @param {() => void} cb */
 export function setGizmoDragEndCallback(cb) {
-  onGizmoDragEnd = cb;
+  gizmoDragEndListeners.clear();
+  if (cb) gizmoDragEndListeners.add(cb);
 }
 
 /** Expose the scene so external modules can add/remove 3D objects. */
@@ -211,22 +260,12 @@ export function initScene(container) {
   // Disable orbit while dragging the gizmo
   transformControls.addEventListener('dragging-changed', (event) => {
     controls.enabled = !event.value;
-    if (!event.value && onGizmoDragEnd) onGizmoDragEnd();
+    if (!event.value) notifyGizmoDragEnd();
   });
 
-  // Fire callback on gizmo change (object-change fires per-frame while dragging)
-  transformControls.addEventListener('objectChange', () => {
-    const obj = transformControls.object;
-    if (!obj) return;
-    
-    if (onGizmoDrag) {
-      onGizmoDrag({
-        position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
-        rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z },
-        scale: { x: obj.scale.x, y: obj.scale.y, z: obj.scale.z }
-      });
-    }
-  });
+  // Fire listeners on every gizmo move (objectChange + change for browser/version coverage)
+  transformControls.addEventListener('objectChange', notifyGizmoDrag);
+  transformControls.addEventListener('change', notifyGizmoDrag);
 
   // Lighting
   const ambient = new THREE.AmbientLight(0xffffff, 0.5);

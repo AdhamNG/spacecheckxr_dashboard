@@ -18,8 +18,8 @@ import {
   flyTo,
   attachGizmo,
   detachGizmo,
-  setGizmoDragCallback,
-  setGizmoDragEndCallback,
+  addGizmoDragListener,
+  addGizmoDragEndListener,
   setLastPickedPoiIndex,
   setSceneInteractionMode,
 } from '../ar/scene.js';
@@ -305,18 +305,41 @@ export function createPOIPanel(container, options = {}) {
     btnDelete.disabled = false;
   });
 
-  setGizmoDragCallback((transform) => {
+  function syncCoordInputsFromData(index) {
+    const poi = poisData[index];
+    if (!poi) return;
+    inputX.value = poi.pos_x.toFixed(4);
+    inputY.value = poi.pos_y.toFixed(4);
+    inputZ.value = poi.pos_z.toFixed(4);
+  }
+
+  function onPoiCoordInput() {
+    if (selectedIndex < 0) return;
+    const x = parseFloat(inputX.value);
+    const y = parseFloat(inputY.value);
+    const z = parseFloat(inputZ.value);
+    if (![x, y, z].every(Number.isFinite)) return;
+    updatePOIPosition(selectedIndex, x, y, z);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('spacecheck-poi-dragging-xy', {
+          detail: { index: selectedIndex, x, y, z },
+        }),
+      );
+    }
+  }
+
+  [inputX, inputY, inputZ].forEach((el) => {
+    el.addEventListener('input', onPoiCoordInput);
+  });
+
+  function onGizmoDrag(transform) {
     if (selectedIndex < 0) return;
     const pos = transform.position;
     inputX.value = pos.x.toFixed(4);
     inputY.value = pos.y.toFixed(4);
     inputZ.value = pos.z.toFixed(4);
     updatePOIPosition(selectedIndex, pos.x, pos.y, pos.z);
-
-    const objs = getPOIObjects();
-    if (objs[selectedIndex]) {
-      objs[selectedIndex].label.position.set(pos.x, pos.y + 0.85, pos.z);
-    }
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('spacecheck-poi-dragging-xy', {
@@ -324,16 +347,14 @@ export function createPOIPanel(container, options = {}) {
         }),
       );
     }
-  });
+  }
 
   function onExternalPoiXY(ev) {
     const d = ev.detail;
     if (!d || typeof d.index !== 'number') return;
     updatePOIPosition(d.index, Number(d.x), Number(d.y), Number(d.z));
     if (selectedIndex === d.index) {
-      inputX.value = Number(d.x).toFixed(4);
-      inputY.value = Number(d.y).toFixed(4);
-      inputZ.value = Number(d.z).toFixed(4);
+      syncCoordInputsFromData(d.index);
     }
   }
 
@@ -349,7 +370,8 @@ export function createPOIPanel(container, options = {}) {
     window.addEventListener('spacecheck-poi-moved-xy', onExternalPoiMoved);
   }
 
-  setGizmoDragEndCallback(() => {
+  addGizmoDragListener(onGizmoDrag);
+  addGizmoDragEndListener(() => {
     if (selectedIndex < 0) return;
     const idx = selectedIndex;
     const p = poisData[idx];

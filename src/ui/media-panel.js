@@ -14,8 +14,8 @@ import {
   flyTo,
   attachGizmo,
   detachGizmo,
-  setGizmoDragCallback,
-  setGizmoDragEndCallback,
+  addGizmoDragListener,
+  addGizmoDragEndListener,
   setGizmoMode,
 } from '../ar/scene.js';
 import { showToast } from './toast.js';
@@ -259,54 +259,70 @@ export function createMediaPanel(container, options = {}) {
     showToast('Media deleted', 'success');
   });
 
-  function wireMediaGizmoHandlers() {
-    setGizmoDragCallback((transform) => {
-      if (selectedIndex < 0) return;
-      const pos = transform.position;
-      const rot = transform.rotation;
-      const scl = transform.scale;
-      inputs.x.value = pos.x.toFixed(4);
-      inputs.y.value = pos.y.toFixed(4);
-      inputs.z.value = pos.z.toFixed(4);
-      inputs.rotx.value = rot.x.toFixed(4);
-      inputs.roty.value = rot.y.toFixed(4);
-      inputs.rotz.value = rot.z.toFixed(4);
-      inputs.scaleX.value = scl.x.toFixed(4);
-      inputs.scaleY.value = scl.y.toFixed(4);
-      inputs.scaleZ.value = scl.z.toFixed(4);
-      updateMediaTransform(selectedIndex, {
-        pos_x: pos.x,
-        pos_y: pos.y,
-        pos_z: pos.z,
-        rot_x: rot.x,
-        rot_y: rot.y,
-        rot_z: rot.z,
-        scale_x: scl.x,
-        scale_y: scl.y,
-        scale_z: scl.z,
-      });
-    });
+  function onMediaCoordInput() {
+    if (selectedIndex < 0) return;
+    readInputsIntoItem(selectedIndex);
+  }
 
-    setGizmoDragEndCallback(() => {
-      if (selectedIndex < 0) return;
-      saveMediaToDb(selectedIndex).catch((err) => console.error('[media-panel]', err));
+  [
+    inputs.x,
+    inputs.y,
+    inputs.z,
+    inputs.rotx,
+    inputs.roty,
+    inputs.rotz,
+    inputs.width,
+    inputs.height,
+    inputs.scaleX,
+    inputs.scaleY,
+    inputs.scaleZ,
+  ].forEach((el) => {
+    el.addEventListener('input', onMediaCoordInput);
+  });
+
+  function onMediaGizmoDrag(transform) {
+    if (selectedIndex < 0) return;
+    const pos = transform.position;
+    const rot = transform.rotation;
+    const scl = transform.scale;
+    inputs.x.value = pos.x.toFixed(4);
+    inputs.y.value = pos.y.toFixed(4);
+    inputs.z.value = pos.z.toFixed(4);
+    inputs.rotx.value = rot.x.toFixed(4);
+    inputs.roty.value = rot.y.toFixed(4);
+    inputs.rotz.value = rot.z.toFixed(4);
+    inputs.scaleX.value = scl.x.toFixed(4);
+    inputs.scaleY.value = scl.y.toFixed(4);
+    inputs.scaleZ.value = scl.z.toFixed(4);
+    updateMediaTransform(selectedIndex, {
+      pos_x: pos.x,
+      pos_y: pos.y,
+      pos_z: pos.z,
+      rot_x: rot.x,
+      rot_y: rot.y,
+      rot_z: rot.z,
+      scale_x: scl.x,
+      scale_y: scl.y,
+      scale_z: scl.z,
     });
   }
 
-  wireMediaGizmoHandlers();
+  addGizmoDragListener(onMediaGizmoDrag);
+  addGizmoDragEndListener(() => {
+    if (selectedIndex < 0) return;
+    saveMediaToDb(selectedIndex).catch((err) => console.error('[media-panel]', err));
+  });
 
   return {
     show() {
       panel.classList.remove('hidden');
       gizmoMode = 'translate';
       setMediaGizmoMode('translate');
-      wireMediaGizmoHandlers();
     },
     hide() {
       panel.classList.add('hidden');
       deselectMedia();
     },
-    wireGizmoHandlers: wireMediaGizmoHandlers,
     refresh() {
       rebuildList();
       if (selectedIndex >= 0 && selectedIndex < mediaData.length) {

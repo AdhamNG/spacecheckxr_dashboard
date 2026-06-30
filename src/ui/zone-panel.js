@@ -11,7 +11,7 @@ import {
   deleteRopinZoneByAccessId,
 } from '../services/supabase.js';
 import { addZoneBox, updateZoneBox, removeZoneBox, clearAllZoneBoxes, setPreviewBox, clearPreviewBox, getZoneObjects, syncZoneVisuals } from '../ar/zone-box.js';
-import { flyTo, getCamera, getCanvas, getScene, setOrbitEnabled, attachGizmo, detachGizmo, setGizmoDragCallback, setGizmoMode } from '../ar/scene.js';
+import { flyTo, getCamera, getCanvas, getScene, setOrbitEnabled, attachGizmo, detachGizmo, addGizmoDragListener, setGizmoMode } from '../ar/scene.js';
 import * as THREE from 'three';
 import { iconSave, iconDelete, iconEdit, iconBox, iconClose } from './icons.js';
 
@@ -339,7 +339,7 @@ export function createZonePanel(container) {
   btnModeScale.addEventListener('click', () => { setGizmoMode('scale'); updateModeButtons('scale'); });
 
   // Listen for gizmo drag
-  setGizmoDragCallback((transform) => {
+  addGizmoDragListener((transform) => {
     if (!selectedZone) return;
     
     const pos = transform.position;

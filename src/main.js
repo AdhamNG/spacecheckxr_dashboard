@@ -237,7 +237,6 @@ dashboard.onPanelChange((panelId) => {
   } else if (panelId === 'media') {
     mediaPanel.show();
     if (poisReady) mediaPanel.refresh();
-    mediaPanel.wireGizmoHandlers?.();
   } else if (panelId === 'tracking') {
     userPanel.show();
   } else if (panelId === 'insights') {
