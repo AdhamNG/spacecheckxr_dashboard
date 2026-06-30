@@ -86,42 +86,44 @@ export function createPOIPanel(container, options = {}) {
 
   const addDialogHost = document.getElementById('app') || document.body;
   const addDialog = document.createElement('div');
-  addDialog.className = 'poi-add-dialog hidden';
+  addDialog.className = 'poi-add-dialog media-modal-overlay hidden';
   addDialog.id = 'poi-add-dialog';
   addDialog.setAttribute('role', 'dialog');
   addDialog.setAttribute('aria-modal', 'true');
   addDialog.setAttribute('aria-labelledby', 'poi-add-dialog-title');
   addDialog.innerHTML = `
     <div class="poi-add-dialog-backdrop" data-action="close"></div>
-    <div class="poi-add-dialog-card float-glass">
-      <div class="poi-add-dialog-header">
+    <div class="poi-add-dialog-card media-modal-card">
+      <header class="poi-add-dialog-header">
         <h3 class="poi-add-dialog-title" id="poi-add-dialog-title">Add New POI</h3>
         <button type="button" class="poi-add-dialog-close" data-action="close" aria-label="Close">&times;</button>
-      </div>
-      <div class="coord-group poi-add-field">
-        <span class="field-label">Name of POI</span>
-        <input type="text" id="new-poi-name" placeholder="Enter a POI name" />
-      </div>
-      <div class="coord-inputs poi-add-coords">
-        <div class="coord-group">
-          <span class="field-label" style="color:#ef4444;font-weight:700;">X</span>
-          <input type="number" id="new-poi-x" value="0" step="any" />
+      </header>
+      <div class="media-modal-form">
+        <div class="coord-group poi-add-field">
+          <span class="field-label">Name of POI</span>
+          <input type="text" id="new-poi-name" placeholder="Enter a POI name" />
         </div>
-        <div class="coord-group">
-          <span class="field-label" style="color:#22c55e;font-weight:700;">Y</span>
-          <input type="number" id="new-poi-y" value="0" step="any" />
-        </div>
-        <div class="coord-group">
-          <span class="field-label" style="color:#3b82f6;font-weight:700;">Z</span>
-          <input type="number" id="new-poi-z" value="0" step="any" />
+        <div class="coord-inputs poi-add-coords">
+          <div class="coord-group">
+            <span class="field-label coord-axis coord-axis-x">X</span>
+            <input type="number" id="new-poi-x" value="0" step="any" />
+          </div>
+          <div class="coord-group">
+            <span class="field-label coord-axis coord-axis-y">Y</span>
+            <input type="number" id="new-poi-y" value="0" step="any" />
+          </div>
+          <div class="coord-group">
+            <span class="field-label coord-axis coord-axis-z">Z</span>
+            <input type="number" id="new-poi-z" value="0" step="any" />
+          </div>
         </div>
       </div>
-      <div class="poi-add-dialog-actions">
+      <footer class="poi-add-dialog-actions media-modal-footer">
         <button type="button" class="btn-secondary" data-action="close">Cancel</button>
         <button type="button" class="btn-save" id="btn-add-poi">
           <span class="icon">${iconAdd()}</span> Add POI
         </button>
-      </div>
+      </footer>
     </div>
   `;
   addDialogHost.appendChild(addDialog);

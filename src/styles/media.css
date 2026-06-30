@@ -271,7 +271,8 @@ html.theme-dark .toast--error {
 
 .poi-add-dialog-card.media-modal,
 .media-modal.poi-add-dialog-card,
-.media-modal-card {
+.media-modal-card,
+.poi-add-dialog .poi-add-dialog-card.media-modal-card {
   position: relative;
   z-index: 1;
   width: min(420px, 92vw);
@@ -285,6 +286,117 @@ html.theme-dark .toast--error {
   backdrop-filter: blur(24px) saturate(160%);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   color: var(--text-1, #0f172a) !important;
+}
+
+.poi-add-dialog .media-modal-form .poi-add-coords {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 4px 20px 12px;
+}
+
+.poi-add-dialog .media-modal-form .poi-add-coords .coord-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.poi-add-dialog .media-modal-form .coord-axis {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.poi-add-dialog .coord-axis-x { color: #ef4444; }
+.poi-add-dialog .coord-axis-y { color: #22c55e; }
+.poi-add-dialog .coord-axis-z { color: #3b82f6; }
+
+.poi-add-dialog .media-modal-form .poi-add-coords input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  height: 38px;
+  padding: 8px 10px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.25;
+  text-align: left;
+  color: var(--text-1, #0f172a) !important;
+  background: var(--glass-input-bg, rgba(255, 255, 255, 0.82)) !important;
+  border: 1px solid var(--glass-input-border, rgba(148, 163, 184, 0.28)) !important;
+  border-radius: var(--radius-sm, 8px);
+  box-shadow: none;
+}
+
+.poi-add-dialog .media-modal-form .poi-add-coords input:focus {
+  outline: none;
+  border-color: var(--accent, #2563eb) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft, rgba(37, 99, 235, 0.1));
+}
+
+.poi-add-dialog .poi-add-dialog-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--border-dim, rgba(148, 163, 184, 0.2));
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-secondary,
+.poi-add-dialog .poi-add-dialog-actions .btn-save {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 40px;
+  margin: 0 !important;
+  padding: 10px 16px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-sm, 8px) !important;
+  cursor: pointer;
+  box-shadow: none !important;
+  transform: none !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-secondary {
+  border: 1px solid var(--glass-control-border, rgba(148, 163, 184, 0.28)) !important;
+  background: var(--glass-control-bg, rgba(255, 255, 255, 0.65)) !important;
+  color: var(--text-1, #0f172a) !important;
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-secondary:hover {
+  color: var(--text-1, #0f172a) !important;
+  background: var(--glass-item-bg-hover, rgba(255, 255, 255, 0.92)) !important;
+  border-color: var(--border-bright, rgba(100, 116, 139, 0.4)) !important;
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-save {
+  background: var(--accent, #2563eb) !important;
+  border: 1px solid var(--accent, #2563eb) !important;
+  color: var(--text-inverse, #ffffff) !important;
+  box-shadow: var(--glow-cyan, 0 4px 24px rgba(37, 99, 235, 0.18)) !important;
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-save:hover:not(:disabled) {
+  background: var(--accent-hover, #1d4ed8) !important;
+  border-color: var(--accent-hover, #1d4ed8) !important;
+  color: var(--text-inverse, #ffffff) !important;
+}
+
+.poi-add-dialog .poi-add-dialog-actions .btn-save .icon {
+  display: inline-flex;
+  font-size: 13px;
 }
 
 .media-modal-header,
@@ -588,6 +700,49 @@ html.theme-dark .toast--error {
 .panel-slot:not(.active) .poi-panel,
 .panel-slot:not(.active) .media-panel {
   display: none;
+}
+
+/* POI / media modals — dark theme (render outside .immersive-shell) */
+html.theme-dark .poi-add-dialog.media-modal-overlay,
+html.theme-dark .media-modal-overlay.poi-add-dialog {
+  --glass-backdrop: rgba(4, 6, 14, 0.72);
+  --glass-modal-bg: rgba(14, 20, 36, 0.97);
+  --glass-modal-border: rgba(121, 201, 255, 0.22);
+  --glass-control-bg: rgba(18, 28, 48, 0.92);
+  --glass-control-border: rgba(121, 201, 255, 0.24);
+  --glass-input-bg: rgba(8, 12, 24, 0.95);
+  --glass-input-border: rgba(121, 201, 255, 0.28);
+  --glass-item-bg-hover: rgba(24, 36, 58, 0.98);
+  --border-dim: rgba(121, 201, 255, 0.14);
+  --text-1: #eef6ff;
+  --text-2: #a8bdd4;
+  --text-3: #6b7f99;
+  --text-inverse: #0a0b1e;
+  --accent: #79c9ff;
+  --accent-hover: #9ed8ff;
+  --accent-soft: rgba(121, 201, 255, 0.16);
+  --glow-cyan: 0 4px 24px rgba(121, 201, 255, 0.22);
+}
+
+html.theme-dark .poi-add-dialog .poi-add-dialog-title {
+  color: var(--text-1) !important;
+}
+
+html.theme-dark .poi-add-dialog .poi-add-dialog-close {
+  color: var(--text-2);
+}
+
+html.theme-dark .poi-add-dialog .poi-add-dialog-close:hover {
+  background: var(--glass-item-bg-hover);
+  color: var(--text-1);
+}
+
+html.theme-dark .poi-add-dialog .poi-add-dialog-actions .btn-secondary {
+  color: var(--text-1) !important;
+}
+
+html.theme-dark .poi-add-dialog .poi-add-dialog-actions .btn-save {
+  color: var(--text-inverse) !important;
 }
 
 /* /media admin page */
