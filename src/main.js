@@ -15,7 +15,10 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { renderForm } from './ui/form.js';
 import { createStatusBar, createConfidenceBadge } from './ui/status.js';
 import { getM2MToken } from './services/multiset-auth.js';
-import { downloadMapMeshStaged } from './services/multiset-mesh.js';
+import {
+  resolveMapMeshKeys,
+  downloadMeshByKey,
+} from './services/multiset-mesh.js';
 import {
   initScene,
   canCreateWebGLContext,
@@ -346,9 +349,35 @@ async function onFormSubmit(creds) {
     });
     roadmapUi.render();
 
-    const { geometry, textured } = await downloadMapMeshStaged(token, creds.mapCode);
+    const meshKeys = await resolveMapMeshKeys(token, creds.mapCode);
+    if (import.meta.env.DEV) {
+      console.log('[map] raw keys:', meshKeys.rawCandidates);
+      console.log('[map] textured keys:', meshKeys.texturedCandidates);
+    }
 
-    if (!geometry && !textured) {
+    let rawBuffer = null;
+    let rawKeyUsed = null;
+    for (const key of meshKeys.rawCandidates) {
+      rawBuffer = await downloadMeshByKey(token, key);
+      if (rawBuffer) {
+        rawKeyUsed = key;
+        break;
+      }
+    }
+
+    const hasSeparateTextured = meshKeys.texturedCandidates.some((k) => k !== rawKeyUsed);
+
+    if (!rawBuffer && hasSeparateTextured) {
+      for (const key of meshKeys.texturedCandidates) {
+        rawBuffer = await downloadMeshByKey(token, key);
+        if (rawBuffer) {
+          rawKeyUsed = key;
+          break;
+        }
+      }
+    }
+
+    if (!rawBuffer) {
       statusBar.show('No GLB file found — loading POIs…', 'loading');
       await loadPoisAfterMap();
       statusBar.show('No GLB file found — but you can navigate the coordinate system', 'success');
@@ -356,42 +385,45 @@ async function onFormSubmit(creds) {
       return;
     }
 
-    if (geometry) {
-      statusBar.show('Decoding map geometry…', 'loading');
-      const gltfGeometry = await parseGlbBuffer(loader, geometry);
-      addMesh(gltfGeometry.scene);
+    statusBar.show('Decoding raw map mesh…', 'loading');
+    const gltfRaw = await parseGlbBuffer(loader, rawBuffer);
+    addMesh(gltfRaw.scene, { reframe: true });
 
-      const poisPromise = (async () => {
-        statusBar.show('Loading POIs…', 'loading');
-        await loadPoisAfterMap();
-      })();
+    const poisPromise = (async () => {
+      statusBar.show('Loading POIs…', 'loading');
+      await loadPoisAfterMap();
+    })();
 
-      if (textured) {
-        statusBar.show('Loading map textures…', 'loading');
+    if (hasSeparateTextured) {
+      void (async () => {
         try {
-          const gltfTextured = await parseGlbBuffer(loader, textured);
-          addMesh(gltfTextured.scene);
+          statusBar.show('Loading map textures…', 'loading');
+          let texturedBuffer = null;
+          for (const key of meshKeys.texturedCandidates) {
+            if (key === rawKeyUsed) continue;
+            texturedBuffer = await downloadMeshByKey(token, key);
+            if (texturedBuffer) break;
+          }
+          if (texturedBuffer) {
+            const gltfTextured = await parseGlbBuffer(loader, texturedBuffer);
+            addMesh(gltfTextured.scene, { reframe: false });
+            statusBar.show('Map loaded ✓', 'success');
+          } else {
+            statusBar.show('Map loaded (raw mesh only)', 'success');
+          }
         } catch (err) {
           console.warn('[map] textured mesh failed:', err);
-          statusBar.show('Map loaded without textures', 'loading');
+          statusBar.show('Map loaded (textures unavailable)', 'success');
         }
-      }
-
-      await poisPromise;
-      statusBar.show('Map loaded ✓', 'success');
-      setTimeout(() => statusBar.hide(), 3000);
-      return;
+        setTimeout(() => statusBar.hide(), 3000);
+      })();
     }
 
-    statusBar.show('Decoding map…', 'loading');
-    const gltf = await parseGlbBuffer(loader, textured);
-    addMesh(gltf.scene);
-
-    statusBar.show('Loading POIs…', 'loading');
-    await loadPoisAfterMap();
-
-    statusBar.show('Map loaded ✓', 'success');
-    setTimeout(() => statusBar.hide(), 3000);
+    await poisPromise;
+    if (!hasSeparateTextured) {
+      statusBar.show('Map loaded ✓', 'success');
+      setTimeout(() => statusBar.hide(), 3000);
+    }
   } catch (err) {
     console.error(err);
     if (creds.restoredSession) clearDashboardSession();

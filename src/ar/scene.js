@@ -680,10 +680,11 @@ export function isTransformDragging() {
 
 /**
  * Add a loaded GLTF scene to the MultiSet anchor group.
- * Auto-frames the camera to fit the model.
  * @param {THREE.Object3D} gltfScene
+ * @param {{ reframe?: boolean }} [options]
  */
-export function addMesh(gltfScene) {
+export function addMesh(gltfScene, options = {}) {
+  const reframe = options.reframe !== false;
   if (!multisetAnchor) return;
 
   // Remove previously-added meshes
@@ -708,7 +709,9 @@ export function addMesh(gltfScene) {
   // Add POIs to the anchor
   addPOIsToScene(multisetAnchor);
 
-  frameCameraToMap({ animate: false });
+  if (reframe) {
+    frameCameraToMap({ animate: false });
+  }
 }
 
 /**
