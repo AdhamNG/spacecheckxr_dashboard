@@ -25,28 +25,7 @@ const PREFER_TEXTURED_MESH = rawPreferTextured === '' ? true : rawPreferTextured
  */
 export async function downloadMapMesh(token, mapOrSetCode) {
   const mapCode = await resolveMapCodeForMeshDownload(token, mapOrSetCode.trim());
-
-  const mapInfoRes = await fetch(`${MAP_INFO_URL}/${encodeURIComponent(mapCode)}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!mapInfoRes.ok) {
-    const errText = await mapInfoRes.text().catch(() => '');
-    console.warn(`Could not fetch map info (${mapInfoRes.status}):`, errText);
-    const hint =
-      mapInfoRes.status === 404
-        ? ' Use a MAP_* code from the portal, or MSET_* if the set exists under this account.'
-        : '';
-    throw new Error(`Failed to fetch map info (${mapInfoRes.status})${hint}`);
-  }
-
-  const mapInfo = await parseJsonResponse(mapInfoRes, 'MultiSet map info');
-  if (mapInfo == null) {
-    throw new Error('Map info response was empty');
-  }
-  if (import.meta.env.DEV) {
-    console.log('[multiset] map info keys:', Object.keys(mapInfo));
-  }
+  const mapInfo = await fetchMapInfo(token, mapCode);
 
   const meshKey = findMeshKey(mapInfo);
 
@@ -75,7 +54,7 @@ export async function downloadMapMesh(token, mapOrSetCode) {
   return null;
 }
 
-function orderMeshKeysForDownload(meshKey) {
+function orderMeshKeysForDownload(meshKey, preferTextured = PREFER_TEXTURED_MESH) {
   const key = String(meshKey || '');
   if (!key) return [];
   const textured = key.replace(/\/mesh\/mesh\.glb$/i, '/Mesh/TexturedMesh.glb');
@@ -85,10 +64,91 @@ function orderMeshKeysForDownload(meshKey) {
   const looksPlain = /\/mesh\/mesh\.glb$/i.test(key);
   if (!looksTextured && !looksPlain) return [key];
 
-  if (PREFER_TEXTURED_MESH) {
+  if (preferTextured) {
     return looksTextured ? [textured, plain] : [textured, plain];
   }
   return looksPlain ? [plain, textured] : [plain, textured];
+}
+
+async function fetchMapInfo(token, mapCode) {
+  const mapInfoRes = await fetch(`${MAP_INFO_URL}/${encodeURIComponent(mapCode)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!mapInfoRes.ok) {
+    const errText = await mapInfoRes.text().catch(() => '');
+    console.warn(`Could not fetch map info (${mapInfoRes.status}):`, errText);
+    const hint =
+      mapInfoRes.status === 404
+        ? ' Use a MAP_* code from the portal, or MSET_* if the set exists under this account.'
+        : '';
+    throw new Error(`Failed to fetch map info (${mapInfoRes.status})${hint}`);
+  }
+
+  const mapInfo = await parseJsonResponse(mapInfoRes, 'MultiSet map info');
+  if (mapInfo == null) {
+    throw new Error('Map info response was empty');
+  }
+  if (import.meta.env.DEV) {
+    console.log('[multiset] map info keys:', Object.keys(mapInfo));
+  }
+  return mapInfo;
+}
+
+function resolveStagedMeshKeys(meshKey) {
+  const key = String(meshKey || '');
+  if (!key) return { geometryCandidates: [], texturedCandidates: [] };
+  return {
+    geometryCandidates: orderMeshKeysForDownload(key, false),
+    texturedCandidates: orderMeshKeysForDownload(key, true),
+  };
+}
+
+/**
+ * Navme-style staged download: plain Mesh.glb first, then TexturedMesh.glb.
+ * @returns {Promise<{ geometry: ArrayBuffer|null, textured: ArrayBuffer|null }>}
+ */
+export async function downloadMapMeshStaged(token, mapOrSetCode) {
+  const mapCode = await resolveMapCodeForMeshDownload(token, mapOrSetCode.trim());
+  const mapInfo = await fetchMapInfo(token, mapCode);
+  const meshKey = findMeshKey(mapInfo);
+  const fallbackKey = buildFallbackKey(mapInfo);
+  const baseKey = meshKey || fallbackKey;
+
+  if (!baseKey) {
+    console.warn('[multiset] no downloadable file found. Map info keys:', Object.keys(mapInfo));
+    return { geometry: null, textured: null };
+  }
+
+  const { geometryCandidates, texturedCandidates } = resolveStagedMeshKeys(baseKey);
+  if (import.meta.env.DEV) {
+    console.log('[multiset] staged geometry candidates:', geometryCandidates.join(' -> '));
+    console.log('[multiset] staged texture candidates:', texturedCandidates.join(' -> '));
+  }
+
+  let geometry = null;
+  let geometryKey = null;
+  for (const key of geometryCandidates) {
+    geometry = await tryDownload(token, key);
+    if (geometry) {
+      geometryKey = key;
+      console.log('[multiset] geometry mesh loaded:', key);
+      break;
+    }
+  }
+
+  let textured = null;
+  for (const key of texturedCandidates) {
+    if (key === geometryKey) continue;
+    const buf = await tryDownload(token, key);
+    if (buf) {
+      textured = buf;
+      console.log('[multiset] textured mesh loaded:', key);
+      break;
+    }
+  }
+
+  return { geometry, textured };
 }
 
 /**

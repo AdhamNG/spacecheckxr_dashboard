@@ -16,7 +16,6 @@ const SIDEBAR_ITEMS = [
   { id: 'pois',      icon: svgPin,      label: 'POIs' },
   { id: 'media',     icon: svgMedia,    label: 'Media' },
   { id: 'journey',   icon: svgJourney,  label: 'Paths' },
-  { id: 'tracking',  icon: svgRadar,    label: 'Live' },
   { id: 'reviews',   icon: svgReview,   label: 'Reviews' },
   { id: 'insights',  icon: svgUsers,    label: 'Stats' },
   { id: 'submitted', icon: svgChart,    label: 'Forms' },
@@ -55,7 +54,6 @@ export function createDashboard(container) {
           <label for="map-display-mode">Display</label>
           <select id="map-display-mode" class="map-display-select">
             <option value="shaded" selected>Shaded</option>
-            <option value="wireframe">Wireframe</option>
             <option value="heatmap">Heat map</option>
           </select>
         </div>
@@ -73,7 +71,6 @@ export function createDashboard(container) {
       <div class="panel-slot active" data-panel="pois"       id="slot-pois"></div>
       <div class="panel-slot"        data-panel="media"      id="slot-media"></div>
       <div class="panel-slot journey-panel" data-panel="journey" id="slot-journey"></div>
-      <div class="panel-slot"        data-panel="tracking"   id="slot-tracking"></div>
       <div class="panel-slot"        data-panel="reviews"    id="slot-reviews"></div>
       <div class="panel-slot"        data-panel="insights"   id="slot-insights"></div>
       <div class="panel-slot"        data-panel="submitted"  id="slot-submitted"></div>
@@ -134,7 +131,6 @@ export function createDashboard(container) {
     pois:       el.querySelector('#slot-pois'),
     media:      el.querySelector('#slot-media'),
     journey:    el.querySelector('#slot-journey'),
-    tracking:   el.querySelector('#slot-tracking'),
     reviews:    el.querySelector('#slot-reviews'),
     insights:   el.querySelector('#slot-insights'),
     submitted:  el.querySelector('#slot-submitted'),
@@ -230,12 +226,6 @@ function svgPin() {
 function svgMedia() {
   return svgWrap(
     '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5.5-5.5L5 21"/>'
-  );
-}
-
-function svgRadar() {
-  return svgWrap(
-    '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="6"/>'
   );
 }
 

@@ -15,7 +15,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { renderForm } from './ui/form.js';
 import { createStatusBar, createConfidenceBadge } from './ui/status.js';
 import { getM2MToken } from './services/multiset-auth.js';
-import { downloadMapMesh } from './services/multiset-mesh.js';
+import { downloadMapMeshStaged } from './services/multiset-mesh.js';
 import {
   initScene,
   canCreateWebGLContext,
@@ -44,7 +44,6 @@ import { createPoiRoadmap } from './ui/poi-roadmap.js';
 import { createDashboard } from './ui/dashboard.js';
 import { createNavPanel } from './ui/nav.js';
 import { createPOIPanel } from './ui/poi-panel.js';
-import { createUserPanel } from './ui/user-panel.js';
 import { createReviewsPanel } from './ui/reviews-panel.js';
 import { createUserInsightsPanel } from './ui/user-insights-panel.js';
 import { createSubmittedPanel } from './ui/submitted-panel.js';
@@ -86,6 +85,12 @@ async function createMapGltfLoader() {
   loader.setDRACOLoader(dracoLoader);
   loader.setMeshoptDecoder(MeshoptDecoder);
   return loader;
+}
+
+function parseGlbBuffer(loader, buffer) {
+  return new Promise((resolve, reject) => {
+    loader.parse(buffer, '', resolve, reject);
+  });
 }
 
 applyRootTheme(getDashboardTheme());
@@ -162,7 +167,6 @@ setOnSceneMapClick((pt, mode) => {
   }
 });
 
-const userPanel = createUserPanel(dashboard.slots.tracking);
 const reviewsPanel = createReviewsPanel(dashboard.slots.reviews);
 const userInsightsPanel = createUserInsightsPanel(dashboard.slots.insights);
 const submittedPanel = createSubmittedPanel(dashboard.slots.submitted);
@@ -231,7 +235,6 @@ dashboard.onPanelChange((panelId) => {
   poiPanel.hide();
   mediaPanel.hide();
   navPanel.hide();
-  userPanel.hide();
   userInsightsPanel.hide();
   reviewsPanel.hide();
   submittedPanel.hide();
@@ -242,8 +245,6 @@ dashboard.onPanelChange((panelId) => {
   } else if (panelId === 'media') {
     mediaPanel.show();
     if (poisReady) mediaPanel.refresh();
-  } else if (panelId === 'tracking') {
-    userPanel.show();
   } else if (panelId === 'insights') {
     userInsightsPanel.show();
   } else if (panelId === 'reviews') {
@@ -262,8 +263,8 @@ if (mapDisplaySelect) {
       setMapDisplayMode('heatmap');
       if (!isSupabaseConfigured()) {
         statusBar.show('Configure Supabase to load the heat map', 'error');
-        mapDisplaySelect.value = getMapDisplayMode() === 'wireframe' ? 'wireframe' : 'shaded';
-        setMapDisplayMode(mapDisplaySelect.value);
+        mapDisplaySelect.value = 'shaded';
+        setMapDisplayMode('shaded');
         return;
       }
       statusBar.show('Loading combined heat map (all users)…', 'loading');
@@ -290,7 +291,7 @@ if (mapDisplaySelect) {
       return;
     }
     clearGlobalHeatmap();
-    setMapDisplayMode(v === 'wireframe' ? 'wireframe' : 'shaded');
+    setMapDisplayMode('shaded');
     if (poisReady) frameCameraToMap({ animate: true });
   });
 }
@@ -346,9 +347,8 @@ async function onFormSubmit(creds) {
     initScene(dashboard.viewport);
     statusBar.mount(dashboard.viewport);
 
-    statusBar.show('Loading map…', 'loading');
-    const meshPromise = downloadMapMesh(token, creds.mapCode);
-    const loaderPromise = createMapGltfLoader();
+    statusBar.show('Loading map geometry…', 'loading');
+    const loader = await createMapGltfLoader();
 
     function syncRoadmapAndPois3d() {
       const anchor = getMultisetAnchor();
@@ -390,10 +390,9 @@ async function onFormSubmit(creds) {
     });
     roadmapUi.render();
 
-    statusBar.show('Finishing map download…', 'loading');
-    const [glbBuffer, loader] = await Promise.all([meshPromise, loaderPromise]);
+    const { geometry, textured } = await downloadMapMeshStaged(token, creds.mapCode);
 
-    if (!glbBuffer) {
+    if (!geometry && !textured) {
       statusBar.show('No GLB file found — loading POIs…', 'loading');
       await loadPoisAfterMap();
       statusBar.show('No GLB file found — but you can navigate the coordinate system', 'success');
@@ -401,11 +400,35 @@ async function onFormSubmit(creds) {
       return;
     }
 
-    statusBar.show('Decoding map geometry…', 'loading');
-    const gltf = await new Promise((resolve, reject) => {
-      loader.parse(glbBuffer, '', resolve, reject);
-    });
+    if (geometry) {
+      statusBar.show('Decoding map geometry…', 'loading');
+      const gltfGeometry = await parseGlbBuffer(loader, geometry);
+      addMesh(gltfGeometry.scene);
 
+      const poisPromise = (async () => {
+        statusBar.show('Loading POIs…', 'loading');
+        await loadPoisAfterMap();
+      })();
+
+      if (textured) {
+        statusBar.show('Loading map textures…', 'loading');
+        try {
+          const gltfTextured = await parseGlbBuffer(loader, textured);
+          addMesh(gltfTextured.scene);
+        } catch (err) {
+          console.warn('[map] textured mesh failed:', err);
+          statusBar.show('Map loaded without textures', 'loading');
+        }
+      }
+
+      await poisPromise;
+      statusBar.show('Map loaded ✓', 'success');
+      setTimeout(() => statusBar.hide(), 3000);
+      return;
+    }
+
+    statusBar.show('Decoding map…', 'loading');
+    const gltf = await parseGlbBuffer(loader, textured);
     addMesh(gltf.scene);
 
     statusBar.show('Loading POIs…', 'loading');
