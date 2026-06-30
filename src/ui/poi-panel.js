@@ -13,6 +13,7 @@ import {
   savePoiToDb,
   updatePOIName,
   updatePOIPosition,
+  updatePOIDescription,
 } from '../ar/pois.js';
 import {
   flyTo,
@@ -29,7 +30,7 @@ import { iconSave, iconDelete, iconAdd } from './icons.js';
 export const DEFAULT_NEW_POI_NAME = 'New POI';
 
 let selectedIndex = -1;
-let inputName, inputX, inputY, inputZ;
+let inputName, inputDescription, inputX, inputY, inputZ;
 
 /**
  * @param {HTMLElement} container
@@ -55,6 +56,10 @@ export function createPOIPanel(container, options = {}) {
       <div class="coord-group" style="padding:0 16px 8px;">
         <span class="field-label">Name of POI</span>
         <input type="text" id="poi-name" value="" />
+      </div>
+      <div class="coord-group poi-desc-field" style="padding:0 16px 8px;">
+        <span class="field-label">Description</span>
+        <textarea id="poi-description" rows="3" placeholder="Enter POI description"></textarea>
       </div>
       <div class="coord-inputs">
         <div class="coord-group">
@@ -103,6 +108,10 @@ export function createPOIPanel(container, options = {}) {
           <span class="field-label">Name of POI</span>
           <input type="text" id="new-poi-name" placeholder="Enter a POI name" />
         </div>
+        <div class="coord-group poi-add-field">
+          <span class="field-label">Description</span>
+          <textarea id="new-poi-description" rows="3" placeholder="Enter POI description (optional)"></textarea>
+        </div>
         <div class="coord-inputs poi-add-coords">
           <div class="coord-group">
             <span class="field-label coord-axis coord-axis-x">X</span>
@@ -132,6 +141,7 @@ export function createPOIPanel(container, options = {}) {
   const coordsEl = panel.querySelector('#poi-coords');
   const selectedNameEl = panel.querySelector('#poi-selected-name');
   inputName = panel.querySelector('#poi-name');
+  inputDescription = panel.querySelector('#poi-description');
   inputX = panel.querySelector('#poi-x');
   inputY = panel.querySelector('#poi-y');
   inputZ = panel.querySelector('#poi-z');
@@ -139,6 +149,7 @@ export function createPOIPanel(container, options = {}) {
   const btnDelete = panel.querySelector('#btn-delete-poi');
   const btnAdd = addDialog.querySelector('#btn-add-poi');
   const newPoiName = addDialog.querySelector('#new-poi-name');
+  const newPoiDescription = addDialog.querySelector('#new-poi-description');
   const newPoiX = addDialog.querySelector('#new-poi-x');
   const newPoiY = addDialog.querySelector('#new-poi-y');
   const newPoiZ = addDialog.querySelector('#new-poi-z');
@@ -194,6 +205,7 @@ export function createPOIPanel(container, options = {}) {
     coordsEl.classList.remove('hidden');
     selectedNameEl.textContent = poi.poi_name;
     inputName.value = poi.poi_name;
+    inputDescription.value = poi.description ?? '';
     inputX.value = poi.pos_x.toFixed(4);
     inputY.value = poi.pos_y.toFixed(4);
     inputZ.value = poi.pos_z.toFixed(4);
@@ -211,8 +223,9 @@ export function createPOIPanel(container, options = {}) {
     }
   }
 
-  function fillAddDialogDefaults({ name = '', x = 0, y = 0, z = 0 } = {}) {
+  function fillAddDialogDefaults({ name = '', description = '', x = 0, y = 0, z = 0 } = {}) {
     newPoiName.value = name;
+    newPoiDescription.value = description;
     newPoiX.value = Number(x).toFixed(4);
     newPoiY.value = Number(y).toFixed(4);
     newPoiZ.value = Number(z).toFixed(4);
@@ -248,6 +261,7 @@ export function createPOIPanel(container, options = {}) {
       updatePOIName(selectedIndex, name);
       selectedNameEl.textContent = name;
     }
+    updatePOIDescription(selectedIndex, inputDescription.value.trim());
     updatePOIPosition(selectedIndex, x, y, z);
     rebuildList();
     selectPOI(selectedIndex);
@@ -275,7 +289,13 @@ export function createPOIPanel(container, options = {}) {
     const z = parseFloat(newPoiZ.value) || 0;
     btnAdd.disabled = true;
     try {
-      const idx = await addPOIWithDb({ poi_name: name, pos_x: x, pos_y: y, pos_z: z });
+      const idx = await addPOIWithDb({
+        poi_name: name,
+        description: newPoiDescription.value.trim(),
+        pos_x: x,
+        pos_y: y,
+        pos_z: z,
+      });
       rebuildList();
       selectPOI(idx);
       closeAddDialog();

@@ -602,6 +602,21 @@ html.theme-dark .toast--error {
   box-shadow: none;
 }
 
+.media-modal-form .poi-add-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 72px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-1, #0f172a) !important;
+  background: var(--glass-input-bg, rgba(255, 255, 255, 0.82)) !important;
+  border: 1px solid var(--glass-input-border, rgba(148, 163, 184, 0.28)) !important;
+  border-radius: var(--radius-sm, 8px);
+  resize: vertical;
+  box-shadow: none;
+}
+
 .media-modal-form .poi-add-field input::placeholder {
   color: var(--text-3, #64748b);
 }

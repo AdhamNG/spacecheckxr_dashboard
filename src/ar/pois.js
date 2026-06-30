@@ -10,6 +10,7 @@ export function normalizePoiRow(row) {
   return {
     id: row.id,
     poi_name: row.poi_name ?? row.title ?? row.name ?? 'POI',
+    description: row.description ?? row.poi_description ?? '',
     pos_x: Number(row.pos_x),
     pos_y: Number(row.pos_y),
     pos_z: Number(row.pos_z),
@@ -78,6 +79,7 @@ export async function applyRoadmapReorder(orderedIds) {
       await updatePoiRow(id, {
         sort_order: i + 1,
         poi_name: p.poi_name,
+        description: p.description ?? '',
         pos_x: p.pos_x,
         pos_y: p.pos_y,
         pos_z: p.pos_z,
@@ -210,6 +212,12 @@ export function updatePOIName(index, name) {
   oldMaterial.dispose();
 }
 
+export function updatePOIDescription(index, description) {
+  const poi = poisData[index];
+  if (!poi) return;
+  poi.description = description ?? '';
+}
+
 function nextSortOrder() {
   let m = 0;
   for (const p of poisData) {
@@ -222,6 +230,7 @@ export async function addPOIWithDb(poi) {
   const sort_order = poi.sort_order ?? nextSortOrder();
   const payload = {
     poi_name: poi.poi_name,
+    description: poi.description ?? '',
     pos_x: poi.pos_x,
     pos_y: poi.pos_y,
     pos_z: poi.pos_z,
@@ -254,6 +263,7 @@ export function addPOI(poi) {
   const newPoi = {
     id: poi.id ?? null,
     poi_name: poi.poi_name,
+    description: poi.description ?? '',
     pos_x: poi.pos_x,
     pos_y: poi.pos_y,
     pos_z: poi.pos_z,
@@ -274,6 +284,7 @@ export async function savePoiToDb(index) {
   if (!poi?.id) return;
   const body = {
     poi_name: poi.poi_name,
+    description: poi.description ?? '',
     pos_x: poi.pos_x,
     pos_y: poi.pos_y,
     pos_z: poi.pos_z,
