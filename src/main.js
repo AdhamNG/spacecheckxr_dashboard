@@ -23,16 +23,13 @@ import {
   flyTo,
   frameCameraToMap,
   getMultisetAnchor,
-  setMapDisplayMode,
-  getMapDisplayMode,
   setOnPoiPickedFromCanvas,
   setSceneInteractionMode,
   setOnSceneMapClick,
   hidePlacementPreview,
   detachGizmo,
 } from './ar/scene.js';
-import { showGlobalHeatmap, clearGlobalHeatmap, clearUserHeatmap } from './ar/nav-heatmap.js';
-import { fetchAllUsersNavnodesCombined, isSupabaseConfigured } from './services/supabase.js';
+import { isSupabaseConfigured } from './services/supabase.js';
 import { createSceneToolbar } from './ui/scene-toolbar.js';
 import {
   hydratePoisFromSupabase,
@@ -254,47 +251,6 @@ dashboard.onPanelChange((panelId) => {
     submittedPanel.show();
   }
 });
-
-const mapDisplaySelect = dashboard.element.querySelector('#map-display-mode');
-if (mapDisplaySelect) {
-  mapDisplaySelect.addEventListener('change', async (e) => {
-    const v = e.target.value;
-    if (v === 'heatmap') {
-      setMapDisplayMode('heatmap');
-      if (!isSupabaseConfigured()) {
-        statusBar.show('Configure Supabase to load the heat map', 'error');
-        mapDisplaySelect.value = 'shaded';
-        setMapDisplayMode('shaded');
-        return;
-      }
-      statusBar.show('Loading combined heat map (all users)…', 'loading');
-      try {
-        clearUserHeatmap();
-        const points = await fetchAllUsersNavnodesCombined();
-        if (!points.length) {
-          statusBar.show('No navnode data for heat map', 'error');
-          mapDisplaySelect.value = 'shaded';
-          setMapDisplayMode('shaded');
-          return;
-        }
-        showGlobalHeatmap(points);
-        frameCameraToMap({ animate: true });
-        statusBar.show(`Heat map — ${points.length} points (all users combined)`, 'success');
-        setTimeout(() => statusBar.hide(), 2500);
-      } catch (err) {
-        console.error(err);
-        clearGlobalHeatmap();
-        statusBar.show(err.message || 'Heat map failed to load', 'error');
-        mapDisplaySelect.value = 'shaded';
-        setMapDisplayMode('shaded');
-      }
-      return;
-    }
-    clearGlobalHeatmap();
-    setMapDisplayMode('shaded');
-    if (poisReady) frameCameraToMap({ animate: true });
-  });
-}
 
 dashboard.onViewSwitch((view) => {
   if (view === '3d' && poisReady) {

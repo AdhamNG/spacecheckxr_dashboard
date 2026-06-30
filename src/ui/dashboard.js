@@ -49,15 +49,6 @@ export function createDashboard(container) {
     <nav class="sidebar-nav-block float-glass chrome-layer" id="sidebar-nav" aria-label="Main menu"></nav>
 
     <main class="viewport scene-stage float-glass scene-float chrome-layer" id="viewport">
-      <div class="viewport-tabs viewport-tabs--display-only" id="viewport-tabs">
-        <div class="viewport-map-style" title="3D map appearance">
-          <label for="map-display-mode">Display</label>
-          <select id="map-display-mode" class="map-display-select">
-            <option value="shaded" selected>Shaded</option>
-            <option value="heatmap">Heat map</option>
-          </select>
-        </div>
-      </div>
       <div class="viewport-body" id="viewport-body">
         <div class="viewport-3d active" id="viewport-3d"></div>
       </div>
