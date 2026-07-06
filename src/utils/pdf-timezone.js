@@ -14,6 +14,18 @@ export function formatDateInFeatureTimeZone(date) {
   }).format(d);
 }
 
+export function formatTimeInFeatureTimeZone(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (!Number.isFinite(d.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: FEATURE_TIMEZONE,
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).format(d);
+}
+
 /** @param {string | number | Date} value */
 export function formatPdfCapturedAt(value) {
   const d = new Date(value);

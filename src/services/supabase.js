@@ -506,7 +506,7 @@ export function deletePoiRow(id) {
 /* ── Journey reviews (pj_journey_reviews) ── */
 
 export function fetchAllJourneyReviews() {
-  return query('pj_journey_reviews?select=*&order=created_at.desc');
+  return query('pj_journey_reviews?select=*,pj_pois(poi_name)&order=created_at.desc');
 }
 
 export function fetchJourneysByIds(journeyIds = []) {
@@ -514,7 +514,7 @@ export function fetchJourneysByIds(journeyIds = []) {
   if (!ids.length) return Promise.resolve([]);
   const inList = ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(',');
   return query(
-    `pj_journeys?select=id,user_name,user_email,status,started_at,completed_at,total_pois,completed_pois&id=in.(${inList})`,
+    `pj_journeys?select=*&id=in.(${inList})`,
   );
 }
 

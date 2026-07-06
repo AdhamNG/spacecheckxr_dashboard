@@ -1338,12 +1338,37 @@ html, body {
   padding-top: 8px;
   border-top: 1px solid var(--border-base);
 }
+.review-card-actions--top {
+  margin-top: 0;
+  margin-bottom: 8px;
+  padding-top: 0;
+  padding-bottom: 8px;
+  border-top: none;
+  border-bottom: 1px solid var(--border-base);
+  justify-content: stretch;
+}
+.review-card-actions--top .review-download-btn {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 10px;
+}
+.review-card-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
 .review-when {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--text-2);
   margin-top: 6px;
   text-align: right;
+}
+.review-card-meta-row .review-when {
+  margin-top: 0;
 }
 .topbar-logout {
   margin-left: 12px;

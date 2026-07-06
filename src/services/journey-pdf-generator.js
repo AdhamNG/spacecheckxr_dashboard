@@ -5,15 +5,17 @@ import { pdfBrandedLinkLabel, SCXR_PDF } from '../config/pdf-brand.js';
 import {
   formatDateInFeatureTimeZone,
   formatPdfCapturedAt,
-  getFeatureTimeZoneLabel,
+  formatTimeInFeatureTimeZone,
 } from '../utils/pdf-timezone.js';
-import { resolveStoragePublicUrl, storagePublicUrl } from './supabase.js';
+import { fetchAllPois, resolveStoragePublicUrl, storagePublicUrl } from './supabase.js';
 
 const MIN_RECORDING_SECONDS = 10;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PDF_REVIEW_COL_GAP = 4;
 const PDF_REVIEW_MEDIA_PAGE_H = 30;
 const PDF_REVIEW_MEDIA_COMPACT_H = 32;
 const PDF_REVIEW_MEDIA_STACKED_H = 22;
+const PDF_MAX_STOPS_PER_PAGE = 2;
 
 let jspdfPreloadStarted = false;
 
@@ -286,6 +288,7 @@ async function preparePdfMediaMaps(reviews) {
     }
 
     mediaMap.set(i, {
+      capturedAt,
       snapshotB64,
       snapshotUrl,
       snapshotUrlReachable,
@@ -350,28 +353,40 @@ function drawPdfDownloadButtonAtY(doc, label, url, contentX, contentW, y) {
   return fakeCtx.y;
 }
 
-function estimatePdfStackedReviewBlockHeight(commentLineCount, hasSnapshot, hasRecording, mediaMaxH) {
+function estimatePdfStackedReviewBlockHeight(commentLineCount, hasSnapshot, hasRecording, mediaMaxH, hasCapturedAt = false) {
   const mediaH = (hasSnapshot || hasRecording)
     ? 10 + mediaMaxH + 16
     : 0;
-  return 13 + mediaH + 14 + commentLineCount * 4.5 + 8;
+  const headerExtra = hasCapturedAt ? 5 : 0;
+  return 13 + headerExtra + mediaH + 18 + commentLineCount * 4.5 + 8;
 }
 
-function pdfStackedMediaMaxH(stackedPageIndex) {
-  return stackedPageIndex === 0
-    ? PDF_REVIEW_MEDIA_COMPACT_H
-    : PDF_REVIEW_MEDIA_STACKED_H;
+function pdfStackedMediaMaxH() {
+  return PDF_REVIEW_MEDIA_STACKED_H;
 }
 
-function pdfMaxStackedReviewsPerPage(stackedPageIndex) {
-  return stackedPageIndex === 0 ? 2 : 3;
+function pdfMaxStackedReviewsPerPage() {
+  return PDF_MAX_STOPS_PER_PAGE;
 }
 
-function estimatePdfReviewBlockHeight(commentLineCount, hasSnapshot, hasRecording, mediaMaxH = PDF_REVIEW_MEDIA_PAGE_H) {
+function drawPdfStopsSectionTitle(doc, pageW, startY) {
+  doc.setTextColor(...SCXR_PDF.navy);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Detailed Stops & Snapshots', pageW / 2, startY + 4, { align: 'center' });
+  doc.setDrawColor(...SCXR_PDF.navy);
+  doc.setLineWidth(0.35);
+  const lineW = 72;
+  doc.line(pageW / 2 - lineW / 2, startY + 7, pageW / 2 + lineW / 2, startY + 7);
+  return startY + 13;
+}
+
+function estimatePdfReviewBlockHeight(commentLineCount, hasSnapshot, hasRecording, mediaMaxH = PDF_REVIEW_MEDIA_PAGE_H, hasCapturedAt = false) {
   const mediaH = (hasSnapshot || hasRecording)
     ? 10 + mediaMaxH + 16
     : 0;
-  return 15 + mediaH + 18 + commentLineCount * 4.5 + 8;
+  const headerExtra = hasCapturedAt ? 5 : 0;
+  return 15 + headerExtra + mediaH + 18 + commentLineCount * 4.5 + 8;
 }
 
 function pdfCenteredInnerBox(margin, contentW, widthRatio = 0.9) {
@@ -448,13 +463,6 @@ function drawPdfRecordingColumn(doc, colX, colW, startY, maxH, recording) {
     y += 8;
   }
 
-  if (recording.durationLabel && recording.durationLabel !== '—') {
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text(recording.durationLabel, colX + colW / 2, y, { align: 'center' });
-    y += 5;
-  }
   return y;
 }
 
@@ -487,6 +495,75 @@ function drawPdfReviewMediaPair(
   return startY;
 }
 
+function looksLikeUuid(value) {
+  return UUID_RE.test(String(value ?? '').trim());
+}
+
+/** @param {Record<string, unknown>} row @param {Map<string, string>} [poiNameById] */
+export function resolvePoiNameForReview(row, poiNameById = new Map()) {
+  const candidates = [
+    row.poi_name,
+    row.pj_pois?.poi_name,
+    row.poi_title,
+    row.poi_label,
+    row.title,
+    row.name,
+  ];
+  for (const candidate of candidates) {
+    const label = String(candidate ?? '').trim();
+    if (label && !looksLikeUuid(label)) return label;
+  }
+  const poiId = String(row.poi_id ?? '').trim();
+  if (poiId && poiNameById.has(poiId)) return poiNameById.get(poiId);
+  return 'Unknown Location';
+}
+
+/** @param {Map<string, string>} poiNameById */
+async function buildPoiNameLookup(poiNameById = new Map()) {
+  try {
+    const pois = await fetchAllPois();
+    pois.forEach((poi) => {
+      const id = String(poi.id ?? '').trim();
+      const name = String(poi.poi_name ?? poi.title ?? poi.name ?? '').trim();
+      if (id && name) poiNameById.set(id, name);
+    });
+  } catch {
+    /* POI lookup is best-effort */
+  }
+  return poiNameById;
+}
+
+function drawPdfStopHeader(doc, boxX, boxW, startY, index, poiName, distanceM, capturedAt, hideDistance = false) {
+  const centerX = boxX + boxW / 2;
+  const titleLines = doc.splitTextToSize(String(poiName || 'Unknown Location'), boxW - 10);
+  const titleLineCount = Math.max(1, titleLines.length);
+  const metaParts = [`Stop ${index + 1}`];
+  if (!hideDistance) metaParts.push(`Distance: ${Number(distanceM || 0).toFixed(2)}m`);
+  if (capturedAt) metaParts.push(`Captured: ${capturedAt}`);
+  const metaLine = metaParts.join(' · ');
+  const headerH = 6 + titleLineCount * 4.5 + 5;
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(boxX, startY, boxW, headerH, 2, 2, 'FD');
+
+  doc.setTextColor(...SCXR_PDF.navy);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(titleLines, centerX, startY + 5, { align: 'center' });
+
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(metaLine, centerX, startY + 5 + titleLineCount * 4.5 + 1, {
+    align: 'center',
+    maxWidth: boxW - 8,
+  });
+
+  return startY + headerH;
+}
+
 function drawPdfStackedReviewBlock(
   doc,
   margin,
@@ -503,25 +580,19 @@ function drawPdfStackedReviewBlock(
 ) {
   const hasSnapshot = Boolean(media?.snapshotB64);
   const hasRecording = Boolean(media?.recording);
+  const capturedAt = media?.capturedAt || media?.recording?.capturedAt || '';
+  const centerX = margin + contentW / 2;
 
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.25);
-  doc.roundedRect(margin, pdfCtx.y, contentW, 9, 2, 2, 'FD');
-  doc.setTextColor(...SCXR_PDF.navy);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`Issue Report — ${index + 1}. ${poiName}`, margin + 4, pdfCtx.y + 6);
-  doc.setTextColor(100, 116, 139);
-  doc.setFontSize(7.5);
-  doc.setFont('helvetica', 'normal');
-  doc.text(
-    `Distance: ${distanceM.toFixed(2)}m`,
-    margin + contentW - 4,
-    pdfCtx.y + 6,
-    { align: 'right' },
-  );
-  pdfCtx.y += 13;
+  pdfCtx.y = drawPdfStopHeader(
+    doc,
+    margin,
+    contentW,
+    pdfCtx.y,
+    index,
+    poiName,
+    distanceM,
+    capturedAt,
+  ) + 4;
 
   if (hasSnapshot || hasRecording) {
     const mediaBottom = drawPdfReviewMediaPair(
@@ -553,16 +624,16 @@ function drawPdfStackedReviewBlock(
     doc.setTextColor(153, 27, 27);
   }
   doc.setFont('helvetica', 'bold');
-  doc.text(sentLabel, margin + 4, pdfCtx.y + 5);
+  doc.text(sentLabel, centerX, pdfCtx.y + 5, { align: 'center' });
   doc.setTextColor(245, 158, 11);
   doc.setFontSize(11);
-  doc.text(`Rating: ${ratingStr}`, margin + 44, pdfCtx.y + 5);
+  doc.text(`Rating: ${ratingStr}`, centerX, pdfCtx.y + 12, { align: 'center' });
 
   doc.setTextColor(51, 65, 85);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(commentLines, margin + 4, pdfCtx.y + 12);
-  pdfCtx.y += 12 + commentLines.length * 4.5 + 6;
+  doc.text(commentLines, centerX, pdfCtx.y + 20, { align: 'center', maxWidth: contentW - 8 });
+  pdfCtx.y += 20 + commentLines.length * 4.5 + 6;
 }
 
 function drawPdfCenteredReviewPage(
@@ -583,58 +654,41 @@ function drawPdfCenteredReviewPage(
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(sectionLabel, pageW / 2, contentTop + 4, { align: 'center' });
-    contentTop += 8;
+    contentTop += 7;
     doc.setDrawColor(...SCXR_PDF.navy);
     doc.setLineWidth(0.35);
     const lineW = 72;
     doc.line(pageW / 2 - lineW / 2, contentTop, pageW / 2 + lineW / 2, contentTop);
-    contentTop += 10;
+    contentTop += 6;
   }
 
   const hasSnapshot = Boolean(params.media?.snapshotB64);
   const hasRecording = Boolean(params.media?.recording);
+  const capturedAt = params.capturedAt
+    || params.media?.capturedAt
+    || params.media?.recording?.capturedAt
+    || '';
   const availableH = pageBottom - contentTop;
   const mediaMaxH = Math.min(
     PDF_REVIEW_MEDIA_PAGE_H,
-    Math.max(36, availableH * 0.36),
+    Math.max(28, availableH * 0.32),
   );
-  const blockH = estimatePdfReviewBlockHeight(
-    params.commentLines.length,
-    hasSnapshot,
-    hasRecording,
-    mediaMaxH,
-  );
-  pdfCtx.y = contentTop + Math.max(10, (availableH - blockH) / 2);
+  pdfCtx.y = contentTop + 2;
 
   const inner = pdfCenteredInnerBox(margin, contentW, 0.9);
   const { x: innerX, w: innerW, centerX } = inner;
 
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.25);
-  const headerH = params.hideDistance ? 10 : 12;
-  doc.roundedRect(innerX, pdfCtx.y, innerW, headerH, 2, 2, 'FD');
-  doc.setTextColor(...SCXR_PDF.navy);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text(
-    `Issue Report — ${params.index + 1}. ${params.poiName}`,
-    centerX,
-    pdfCtx.y + (params.hideDistance ? 6 : 5),
-    { align: 'center' },
-  );
-  if (!params.hideDistance) {
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'normal');
-    doc.text(
-      `Distance: ${params.distanceM.toFixed(2)}m`,
-      centerX,
-      pdfCtx.y + 9.5,
-      { align: 'center' },
-    );
-  }
-  pdfCtx.y += headerH + 4;
+  pdfCtx.y = drawPdfStopHeader(
+    doc,
+    innerX,
+    innerW,
+    pdfCtx.y,
+    params.index,
+    params.poiName,
+    params.distanceM,
+    capturedAt,
+    params.hideDistance,
+  ) + 4;
 
   if (hasSnapshot || hasRecording) {
     const mediaBottom = drawPdfReviewMediaPair(
@@ -654,7 +708,7 @@ function drawPdfCenteredReviewPage(
       hasRecording && params.media?.recording ? params.media.recording : null,
       mediaMaxH,
     );
-    pdfCtx.y = mediaBottom + 6;
+    pdfCtx.y = mediaBottom + 4;
   }
 
   const sentLabel = params.sentiment === 'positive' ? 'Positive' : 'Needs Improvement';
@@ -670,36 +724,82 @@ function drawPdfCenteredReviewPage(
     doc.text(sentLabel, centerX, pdfCtx.y + 4, { align: 'center' });
     doc.setTextColor(245, 158, 11);
     doc.setFontSize(11);
-    doc.text(`Rating: ${ratingStr}`, centerX, pdfCtx.y + 11, { align: 'center' });
-    pdfCtx.y += 18;
+    doc.text(`Rating: ${ratingStr}`, centerX, pdfCtx.y + 10, { align: 'center' });
+    pdfCtx.y += 16;
   } else {
     doc.setTextColor(245, 158, 11);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(`Rating: ${ratingStr}`, centerX, pdfCtx.y + 4, { align: 'center' });
-    pdfCtx.y += 12;
+    pdfCtx.y += 10;
   }
 
   doc.setTextColor(51, 65, 85);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text(params.commentLines, centerX, pdfCtx.y, { align: 'center', maxWidth: innerW });
-  pdfCtx.y += params.commentLines.length * 4.5 + 8;
+  pdfCtx.y += params.commentLines.length * 4.5 + 6;
 }
 
-/** @param {Record<string, unknown>} row */
-export function normalizeReviewForPdf(row) {
+/** @param {Record<string, unknown>} row @param {Map<string, string>} [poiNameById] */
+export function normalizeReviewForPdf(row, poiNameById = new Map()) {
+  const poiName = resolvePoiNameForReview(row, poiNameById);
   return {
     ...row,
     review_text: row.review_text ?? row.comment ?? row.body ?? row.text ?? '',
     pj_pois: {
-      poi_name:
-        row.poi_name
-        ?? row.pj_pois?.poi_name
-        ?? row.poi_id
-        ?? 'Unknown',
+      poi_name: poiName,
     },
   };
+}
+
+function reviewPosition(row) {
+  const x = Number(row.pos_x ?? row.user_pos_x ?? row.x);
+  const y = Number(row.pos_y ?? row.user_pos_y ?? row.y);
+  const z = Number(row.pos_z ?? row.user_pos_z ?? row.z);
+  if (![x, y, z].every(Number.isFinite)) return null;
+  return { x, y, z };
+}
+
+function distance3dMeters(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const dz = b.z - a.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function sortReviewsChronologically(reviews) {
+  return [...reviews].sort(
+    (a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime(),
+  );
+}
+
+/** Total meters walked between consecutive stop capture positions. */
+export function computeWalkedDistanceMeters(reviews) {
+  const sorted = sortReviewsChronologically(reviews);
+  let total = 0;
+  let prev = null;
+  for (const row of sorted) {
+    const pos = reviewPosition(row);
+    if (!pos) continue;
+    if (prev) total += distance3dMeters(prev, pos);
+    prev = pos;
+  }
+  return total;
+}
+
+function journeyRowDistanceMeters(journeyRow) {
+  const candidates = [
+    journeyRow?.total_distance,
+    journeyRow?.distance_walked,
+    journeyRow?.total_distance_m,
+    journeyRow?.distance_traveled,
+  ];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n >= 0) return n;
+  }
+  return null;
 }
 
 /**
@@ -707,23 +807,30 @@ export function normalizeReviewForPdf(row) {
  * @param {Record<string, unknown>[]} reviews
  */
 export function computeJourneyPdfDetail(journeyRow, reviews) {
-  const totalPois = Number(journeyRow?.total_pois ?? reviews.length) || reviews.length;
+  const sorted = sortReviewsChronologically(reviews);
+  const totalPois = Number(journeyRow?.total_pois ?? sorted.length) || sorted.length;
   let elapsedSeconds = 0;
   const started = journeyRow?.started_at ? new Date(String(journeyRow.started_at)) : null;
   const completed = journeyRow?.completed_at ? new Date(String(journeyRow.completed_at)) : null;
   if (started && completed && Number.isFinite(started.getTime()) && Number.isFinite(completed.getTime())) {
     elapsedSeconds = Math.max(0, Math.round((completed.getTime() - started.getTime()) / 1000));
-  } else if (reviews.length >= 2) {
-    const first = new Date(String(reviews[0].created_at)).getTime();
-    const last = new Date(String(reviews[reviews.length - 1].created_at)).getTime();
+  } else if (sorted.length >= 2) {
+    const first = new Date(String(sorted[0].created_at)).getTime();
+    const last = new Date(String(sorted[sorted.length - 1].created_at)).getTime();
     if (Number.isFinite(first) && Number.isFinite(last)) {
       elapsedSeconds = Math.max(0, Math.round((last - first) / 1000));
     }
   }
+
+  const fromJourneyRow = journeyRowDistanceMeters(journeyRow);
+  const totalDistance = fromJourneyRow != null
+    ? fromJourneyRow
+    : computeWalkedDistanceMeters(sorted);
+
   return {
     totalPois,
     elapsedSeconds,
-    totalDistance: 0,
+    totalDistance,
   };
 }
 
@@ -749,7 +856,9 @@ export async function generateJourneyPdfReport(params) {
     onProgress,
   } = params;
 
-  const reviews = rawReviews.map(normalizeReviewForPdf);
+  onProgress?.('Loading POI names…');
+  const poiNameById = await buildPoiNameLookup();
+  const reviews = rawReviews.map((row) => normalizeReviewForPdf(row, poiNameById));
 
   onProgress?.('Preparing report…');
   await loadJsPDF();
@@ -771,9 +880,9 @@ export async function generateJourneyPdfReport(params) {
   };
 
   doc.setFillColor(...SCXR_PDF.navy);
-  doc.rect(0, 0, pageW, 42, 'F');
+  doc.rect(0, 0, pageW, 46, 'F');
   doc.setFillColor(...SCXR_PDF.white);
-  doc.rect(0, 38, pageW, 1.2, 'F');
+  doc.rect(0, 42, pageW, 1.2, 'F');
   doc.setTextColor(...SCXR_PDF.white);
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
@@ -782,16 +891,20 @@ export async function generateJourneyPdfReport(params) {
   doc.setFont('helvetica', 'normal');
   doc.text('Check your space from anywhere.', margin, 24);
 
-  const dateStr = formatDateInFeatureTimeZone(new Date());
+  const reportDate = new Date();
+  const dateStr = formatDateInFeatureTimeZone(reportDate);
+  const timeStr = `${formatTimeInFeatureTimeZone(reportDate)} EST`;
+  const metaRight = pageW - margin;
+  const metaTop = 13;
+  const metaLineGap = 4.5;
   doc.setTextColor(...SCXR_PDF.headerSubtext);
   doc.setFont('courier', 'normal');
   doc.setFontSize(7);
-  doc.text(`Date: ${dateStr}`, pageW - margin, 14, { align: 'right' });
-  doc.setFontSize(6.5);
-  const emailLine = `${userEmail} · ${getFeatureTimeZoneLabel()}`;
-  doc.text(emailLine, pageW - margin, 19, { align: 'right' });
+  doc.text(`Date: ${dateStr}`, metaRight, metaTop, { align: 'right' });
+  doc.text(`Time: ${timeStr}`, metaRight, metaTop + metaLineGap, { align: 'right' });
+  doc.text(`Username: ${userEmail}`, metaRight, metaTop + metaLineGap * 2, { align: 'right' });
 
-  pdfCtx.y = 48;
+  pdfCtx.y = 50;
 
   const mins = Math.floor(detail.elapsedSeconds / 60);
   const secs = detail.elapsedSeconds % 60;
@@ -819,38 +932,33 @@ export async function generateJourneyPdfReport(params) {
     doc.text(s.lbl.toUpperCase(), sx + statW / 2, pdfCtx.y + 16, { align: 'center' });
   });
 
-  pdfCtx.y += 26;
+  pdfCtx.y += 24;
 
   if (reviews.length > 0) {
-    pdfCtx.y += 4;
-    const r0 = reviews[0];
-    const poiName0 = r0.pj_pois?.poi_name || 'Unknown Location';
-    const media0 = mediaMap.get(0);
-    const commentText0 = pdfDisplayText(r0.review_text, 'No comment provided.');
-    const commentLines0 = wrapText(doc, commentText0, contentW * 0.9 - 8);
-
-    drawPdfCenteredReviewPage(doc, pageW, pageH, margin, contentW, pdfCtx, {
-      index: 0,
-      poiName: poiName0,
-      distanceM: Number(r0.distance_to_poi ?? 0),
-      sentiment: String(r0.sentiment ?? 'positive'),
-      rating: Number(r0.rating ?? 5),
-      commentLines: commentLines0,
-      media: media0,
-      showSectionTitle: true,
-      pageStartY: pdfCtx.y,
-    });
+    const firstReview = reviews[0];
+    const lastReview = reviews[reviews.length - 1];
+    if (firstReview?.created_at) {
+      const startCap = formatPdfCapturedAt(firstReview.created_at);
+      const endCap = lastReview?.created_at && lastReview !== firstReview
+        ? formatPdfCapturedAt(lastReview.created_at)
+        : '';
+      const journeyWhen = endCap ? `${startCap} – ${endCap}` : startCap;
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Journey captured: ${journeyWhen}`, pageW / 2, pdfCtx.y + 1, { align: 'center' });
+      pdfCtx.y += 6;
+    }
   }
 
-  if (reviews.length > 1) {
-    doc.addPage();
-    pdfCtx.y = margin;
-
-    let stackedPageIndex = 0;
-    let reviewsOnStackedPage = 0;
+  if (reviews.length > 0) {
+    pdfCtx.y += 2;
+    let stopsOnPage = 0;
+    let sectionTitlePlaced = false;
     const pageLimit = pageH - margin;
+    const mediaMaxH = pdfStackedMediaMaxH();
 
-    for (let i = 1; i < reviews.length; i += 1) {
+    for (let i = 0; i < reviews.length; i += 1) {
       const r = reviews[i];
       const poiName = r.pj_pois?.poi_name || 'Unknown Location';
       const media = mediaMap.get(i);
@@ -858,30 +966,37 @@ export async function generateJourneyPdfReport(params) {
       const commentLines = wrapText(doc, commentText, contentW - 8);
       const hasSnapshot = Boolean(media?.snapshotB64);
       const hasRecording = Boolean(media?.recording);
-      const mediaMaxH = pdfStackedMediaMaxH(stackedPageIndex);
+      const hasCapturedAt = Boolean(media?.capturedAt || media?.recording?.capturedAt);
+      const sectionReserve = sectionTitlePlaced ? 0 : 13;
+      const dividerReserve = i < reviews.length - 1 ? 6 : 0;
       const blockH = estimatePdfStackedReviewBlockHeight(
         commentLines.length,
         hasSnapshot,
         hasRecording,
         mediaMaxH,
-      );
+        hasCapturedAt,
+      ) + dividerReserve;
 
-      const maxOnPage = pdfMaxStackedReviewsPerPage(stackedPageIndex);
-      const atPageQuota = reviewsOnStackedPage >= maxOnPage;
-      const spaceExceeded = pdfCtx.y + blockH > pageLimit;
-      const fillingPage = reviewsOnStackedPage < maxOnPage;
-      const needsNewPage = atPageQuota || (spaceExceeded && !fillingPage);
+      const needsNewPage =
+        stopsOnPage >= PDF_MAX_STOPS_PER_PAGE
+        || pdfCtx.y + sectionReserve + blockH > pageLimit;
 
       if (needsNewPage) {
-        doc.addPage();
-        pdfCtx.y = margin;
-        if (reviewsOnStackedPage > 0) {
-          stackedPageIndex += 1;
+        if (stopsOnPage > 0) {
+          doc.addPage();
+          pdfCtx.y = margin;
+          stopsOnPage = 0;
+        } else if (pdfCtx.y + sectionReserve + blockH > pageLimit) {
+          doc.addPage();
+          pdfCtx.y = margin;
         }
-        reviewsOnStackedPage = 0;
       }
 
-      const drawMediaMaxH = pdfStackedMediaMaxH(stackedPageIndex);
+      if (!sectionTitlePlaced) {
+        pdfCtx.y = drawPdfStopsSectionTitle(doc, pageW, pdfCtx.y);
+        sectionTitlePlaced = true;
+      }
+
       drawPdfStackedReviewBlock(
         doc,
         margin,
@@ -894,9 +1009,9 @@ export async function generateJourneyPdfReport(params) {
         Number(r.rating ?? 5),
         commentLines,
         media,
-        drawMediaMaxH,
+        mediaMaxH,
       );
-      reviewsOnStackedPage += 1;
+      stopsOnPage += 1;
 
       if (i < reviews.length - 1) {
         doc.setDrawColor(226, 232, 240);
@@ -927,9 +1042,9 @@ export async function generateJourneyPdfReport(params) {
     doc.line(margin, pdfCtx.y, margin + 72, pdfCtx.y);
     pdfCtx.y += 8;
 
-    let extraStackedPageIndex = 0;
     let extrasOnPage = 0;
     const pageLimitEx = pageH - margin;
+    const mediaMaxHEx = pdfStackedMediaMaxH();
 
     for (let ei = 0; ei < extraIssues.length; ei += 1) {
       const ex = extraIssues[ei];
@@ -954,6 +1069,9 @@ export async function generateJourneyPdfReport(params) {
         imageAssetEx = await imgToBase64(String(ex.image_url));
       }
 
+      const issueCapturedAt = ex.created_at
+        ? formatPdfCapturedAt(ex.created_at)
+        : '';
       const durationEx = Number(ex.duration_seconds || 0);
       const recordingEx = hasVideoEx && (durationEx <= 0 || isValidRecordingDuration(durationEx))
         ? {
@@ -963,7 +1081,7 @@ export async function generateJourneyPdfReport(params) {
             durationLabel: durationEx > 0
               ? formatPdfDuration(durationEx)
               : '—',
-            capturedAt: formatPdfCapturedAt(new Date()),
+            capturedAt: issueCapturedAt,
             name: issueTitle,
             thumbB64: imageAssetEx?.dataUrl ?? null,
             thumbNaturalWidth: imageAssetEx?.naturalWidth ?? 16,
@@ -976,40 +1094,48 @@ export async function generateJourneyPdfReport(params) {
       const snapshotReachable = snapshotUrlEx
         ? await verifyPdfMediaUrl(snapshotUrlEx)
         : false;
-      const mediaMaxHEx = pdfStackedMediaMaxH(extraStackedPageIndex);
       const blockHEx = estimatePdfStackedReviewBlockHeight(
         linesEx.length,
         hasSnapshotEx,
         Boolean(recordingEx),
         mediaMaxHEx,
+        Boolean(issueCapturedAt),
       ) - 2;
 
-      const maxOnPageEx = pdfMaxStackedReviewsPerPage(extraStackedPageIndex);
-      const atQuotaEx = extrasOnPage >= maxOnPageEx;
-      const spaceExceededEx = pdfCtx.y + blockHEx > pageLimitEx;
-      const fillingEx = extrasOnPage < maxOnPageEx;
-      const needsNewPageEx = atQuotaEx || (spaceExceededEx && !fillingEx);
+      const maxOnPageEx = pdfMaxStackedReviewsPerPage();
+      const needsNewPageEx =
+        extrasOnPage >= maxOnPageEx
+        || pdfCtx.y + blockHEx > pageLimitEx;
 
       if (needsNewPageEx) {
-        doc.addPage();
-        pdfCtx.y = margin;
         if (extrasOnPage > 0) {
-          extraStackedPageIndex += 1;
+          doc.addPage();
+          pdfCtx.y = margin;
+          extrasOnPage = 0;
+        } else if (pdfCtx.y + blockHEx > pageLimitEx) {
+          doc.addPage();
+          pdfCtx.y = margin;
         }
-        extrasOnPage = 0;
       }
 
-      const drawMediaMaxHEx = pdfStackedMediaMaxH(extraStackedPageIndex);
+      const drawMediaMaxHEx = mediaMaxHEx;
 
+      const issueHeaderH = issueCapturedAt ? 14 : 8;
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
       doc.setLineWidth(0.25);
-      doc.roundedRect(margin, pdfCtx.y, contentW, 8, 2, 2, 'FD');
+      doc.roundedRect(margin, pdfCtx.y, contentW, issueHeaderH, 2, 2, 'FD');
       doc.setTextColor(...SCXR_PDF.navy);
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Issue Report — ${issueTitle}`, margin + 4, pdfCtx.y + 5.5);
-      pdfCtx.y += 11;
+      doc.text(`Issue Report — ${issueTitle}`, margin + contentW / 2, pdfCtx.y + 5, { align: 'center', maxWidth: contentW - 8 });
+      if (issueCapturedAt) {
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Captured: ${issueCapturedAt}`, margin + contentW / 2, pdfCtx.y + 10.5, { align: 'center' });
+      }
+      pdfCtx.y += issueHeaderH + 3;
 
       if (hasSnapshotEx || recordingEx) {
         const mediaBottomEx = drawPdfReviewMediaPair(
@@ -1032,15 +1158,16 @@ export async function generateJourneyPdfReport(params) {
         pdfCtx.y = mediaBottomEx + 4;
       }
 
+      const issueCenterX = margin + contentW / 2;
       doc.setTextColor(245, 158, 11);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Rating: [${ex.rating}/5]`, margin + 4, pdfCtx.y + 5);
+      doc.text(`Rating: [${ex.rating}/5]`, issueCenterX, pdfCtx.y + 5, { align: 'center' });
 
       doc.setTextColor(51, 65, 85);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(linesEx, margin + 4, pdfCtx.y + 12);
+      doc.text(linesEx, issueCenterX, pdfCtx.y + 12, { align: 'center', maxWidth: contentW - 8 });
       pdfCtx.y += 12 + linesEx.length * 4.5 + 8;
       extrasOnPage += 1;
 

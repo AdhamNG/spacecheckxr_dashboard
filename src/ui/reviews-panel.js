@@ -347,12 +347,14 @@ export function createReviewsPanel(container) {
           <span class="review-meta review-journey-title">${esc(journeyTitle)}</span>
           <span class="review-user">User: ${esc(usr)}</span>
         </div>
-        <div class="review-meta">Stops: ${completeStops.length} (complete journey)</div>
-        <div class="review-stops">${stopsHtml}</div>
-        <div class="review-card-actions">
+        <div class="review-card-actions review-card-actions--top">
           <button type="button" class="review-download-btn">Download complete journey PDF</button>
         </div>
-        ${when ? `<div class="review-when">${esc(when)}</div>` : ''}
+        <div class="review-card-meta-row">
+          <span class="review-meta">Stops: ${completeStops.length} (complete journey)</span>
+          ${when ? `<span class="review-when">${esc(when)}</span>` : ''}
+        </div>
+        <div class="review-stops">${stopsHtml}</div>
       `;
       const downloadBtn = card.querySelector('.review-download-btn');
       if (downloadBtn) {
