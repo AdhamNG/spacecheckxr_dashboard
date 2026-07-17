@@ -12,14 +12,14 @@ export const SCXR_PDF = {
 export function pdfBrandedLinkLabel(kind) {
   switch (kind) {
     case 'snapshot':
-      return 'Open NavMe snapshot';
+      return 'View snapshot';
     case 'recording':
-      return 'Open NavMe recording';
+      return 'View recording';
     case 'media':
-      return 'Open NavMe media';
+      return 'View media';
     default: {
       const _exhaustive = kind;
-      return `Open NavMe ${_exhaustive}`;
+      return `View ${_exhaustive}`;
     }
   }
 }
