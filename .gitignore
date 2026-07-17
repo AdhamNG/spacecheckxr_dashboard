@@ -1,0 +1,24 @@
+# Secrets (local only — never commit)
+.env
+.env.*.local
+
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+.tools/
+
+# Editor metadata
+.cursor/
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS metadata
+.DS_Store
+Thumbs.db

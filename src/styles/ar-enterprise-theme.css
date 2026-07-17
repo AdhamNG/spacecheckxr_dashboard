@@ -1,0 +1,782 @@
+/* ═══════════════════════════════════════════════════
+   SpaceCheck XR — White & black claymorphism
+   Same layout / padding as enterprise shell — clay depth only
+   ═══════════════════════════════════════════════════ */
+
+.ar-enterprise-shell {
+  --scene-clear-color: #ffffff;
+  --clay-chrome: #ffffff;
+  --clay-canvas: #ffffff;
+  --clay-bg: #e4e4e4;
+  --clay-bg-deep: #e4e4e4;
+  --clay-surface: #ffffff;
+  --clay-raised: #f5f5f5;
+  --clay-pressed: #ebebeb;
+  --clay-black: #121212;
+  --clay-black-soft: #2a2a2a;
+  --clay-mesh: #ffffff;
+
+  --bg-mesh: #ffffff;
+  --bg-mesh-deep: #ffffff;
+  --bg-app-gradient: var(--clay-bg);
+  --bg-deep: var(--clay-bg);
+  --bg-base: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-elevated: var(--clay-raised);
+  --bg-hover: var(--clay-pressed);
+  --bg-inverse: var(--clay-black);
+  --bg-sidebar: transparent;
+
+  --ink: var(--clay-black);
+  --ink-muted: #000000;
+  --ink-faint: #000000;
+
+  --chrome-panel: #ffffff;
+  --chrome-panel-strong: #ffffff;
+  --glass-white: rgba(250, 250, 250, 0.92);
+  --glass-white-strong: var(--clay-raised);
+  --glass-blur: none;
+  --glass-blur-heavy: none;
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-border-ink: rgba(0, 0, 0, 0.12);
+
+  --accent: var(--clay-black);
+  --accent-hover: #000000;
+  --accent-soft: rgba(0, 0, 0, 0.06);
+  --border-dim: rgba(0, 0, 0, 0.1);
+  --border-base: rgba(0, 0, 0, 0.14);
+  --border-bright: rgba(0, 0, 0, 0.22);
+
+  --cyan: var(--clay-black-soft);
+  --violet: #4a4a4a;
+  --green: #1b5e3b;
+  --red: #9b1c1c;
+  --amber: #5c5c5c;
+
+  --text-1: #000000;
+  --text-2: #000000;
+  --text-3: #000000;
+  --text-inverse: #fafafa;
+  --text-on-ink: #fafafa;
+
+  --glow-cyan: none;
+  --glow-amber: none;
+  --glow-violet: none;
+
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', Consolas, monospace;
+
+  --chrome-gap: 10px;
+  --topbar-h: 44px;
+  --bottombar-h: 0px;
+  --drawer-w: 300px;
+  --nav-float-width: 60px;
+  --float-radius: 14px;
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  /* Clay depth — raised / inset */
+  --shadow-clay-raised:
+    -7px -7px 16px rgba(255, 255, 255, 0.95),
+    7px 7px 20px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-clay-raised-sm:
+    -4px -4px 10px rgba(255, 255, 255, 0.92),
+    4px 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-clay-inset:
+    inset 5px 5px 12px rgba(0, 0, 0, 0.1),
+    inset -4px -4px 10px rgba(255, 255, 255, 0.88);
+  --shadow-clay-black:
+    -3px -3px 8px rgba(255, 255, 255, 0.06),
+    6px 6px 18px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  --shadow-float: var(--shadow-clay-raised);
+  --shadow-float-sm: var(--shadow-clay-raised-sm);
+  --shadow-float-ink: var(--shadow-clay-black);
+
+  --brand-navy: var(--clay-black);
+  --brand-blue: var(--clay-black);
+  --brand-blue-mid: var(--clay-black-soft);
+  --brand-cyan: #3a3a3a;
+  --brand-ice: var(--clay-raised);
+  --brand-snow: var(--clay-raised);
+  --brand-amber: #5c5c5c;
+}
+
+html.theme-light {
+  --scene-clear-color: #ffffff;
+  --bg-deep: #e4e4e4;
+  --bg-app-gradient: #e4e4e4;
+  --text-1: #000000;
+}
+
+html.theme-light,
+html.theme-light body,
+html.theme-light #app,
+.ar-enterprise-shell {
+  background: var(--bg-app-gradient) !important;
+  background-color: var(--bg-deep) !important;
+  color: var(--text-1);
+}
+
+.ar-enterprise-shell,
+.ar-enterprise-shell * {
+  text-shadow: none !important;
+}
+
+/* ── Floating chrome — pure white (#ffffff) ── */
+.ar-enterprise-shell .topbar,
+.ar-enterprise-shell .sidebar-nav-block,
+.ar-enterprise-shell .sidebar-nav-block.float-glass {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-clay-raised) !important;
+  color: #000000;
+}
+
+/* ── Center scene + right drawer — pure white (#ffffff) ── */
+.ar-enterprise-shell .float-drawer,
+.ar-enterprise-shell .drawer-frost,
+.ar-enterprise-shell .nav-dock-frost,
+.ar-enterprise-shell .panel-slot.active,
+.ar-enterprise-shell .poi-panel,
+.ar-enterprise-shell .user-panel,
+.ar-enterprise-shell .reviews-panel,
+.ar-enterprise-shell .user-insights-panel,
+.ar-enterprise-shell .submitted-panel {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--border-base) !important;
+  color: #000000;
+}
+
+.ar-enterprise-shell .float-drawer,
+.ar-enterprise-shell .drawer-frost {
+  box-shadow: var(--shadow-clay-raised) !important;
+}
+
+.ar-enterprise-shell .drawer-frost::before,
+.ar-enterprise-shell .drawer-frost::after,
+.ar-enterprise-shell .nav-dock-frost::before,
+.ar-enterprise-shell .nav-dock-frost::after {
+  display: none !important;
+}
+
+.ar-enterprise-shell .viewport-body::before,
+.ar-enterprise-shell .viewport::before,
+.ar-enterprise-shell .viewport::after {
+  display: none !important;
+  content: none !important;
+}
+
+.ar-enterprise-shell .scene-stage.scene-float {
+  top: calc(var(--chrome-gap) + var(--topbar-h) + 8px);
+  bottom: calc(var(--chrome-gap) + var(--bottombar-h) + 8px);
+  background: #ffffff !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-clay-raised-sm) !important;
+  border-radius: var(--float-radius) !important;
+}
+
+.ar-enterprise-shell .viewport-body,
+.ar-enterprise-shell .viewport-3d,
+.ar-enterprise-shell .viewport-tabs {
+  background: #ffffff !important;
+}
+
+.ar-enterprise-shell.drawer-open .scene-stage.scene-float {
+  right: calc(var(--chrome-gap) + min(var(--drawer-w), calc(100vw - 96px)) + 8px) !important;
+}
+
+.ar-enterprise-shell.reviews-focus .scene-stage.scene-float,
+.ar-enterprise-shell.insights-focus .scene-stage.scene-float {
+  display: none !important;
+}
+
+.ar-enterprise-shell.reviews-focus .float-drawer,
+.ar-enterprise-shell.insights-focus .float-drawer {
+  display: flex !important;
+  left: calc(var(--chrome-gap) + var(--nav-float-width) + 8px) !important;
+  right: var(--chrome-gap) !important;
+  width: auto !important;
+  max-width: none !important;
+  top: calc(var(--chrome-gap) + var(--topbar-h) + 8px) !important;
+  bottom: calc(var(--chrome-gap) + var(--bottombar-h) + 8px) !important;
+}
+
+.ar-enterprise-shell.reviews-focus .reviews-panel,
+.ar-enterprise-shell.insights-focus .user-insights-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.ar-enterprise-shell .topbar {
+  height: var(--topbar-h);
+  min-height: var(--topbar-h);
+  padding: 0 18px !important;
+  border-radius: var(--float-radius) !important;
+}
+
+.ar-enterprise-shell .topbar-logo-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-1) !important;
+  -webkit-text-fill-color: var(--text-1) !important;
+}
+
+.ar-enterprise-shell .topbar-right {
+  gap: 12px;
+}
+
+.ar-enterprise-shell .topbar-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--clay-raised);
+  box-shadow: var(--shadow-clay-raised-sm);
+  border: 1px solid var(--border-base);
+}
+
+.ar-enterprise-shell .topbar-stat-chip .stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .topbar-stat-chip .stat-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-1) !important;
+}
+
+.ar-enterprise-shell .topbar-theme-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border-base);
+  background: var(--clay-raised);
+  color: var(--clay-black);
+  box-shadow: var(--shadow-clay-raised-sm);
+  cursor: pointer;
+}
+
+.ar-enterprise-shell .topbar-theme-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ar-enterprise-shell .topbar-theme-btn:hover {
+  background: var(--clay-pressed);
+}
+
+.ar-enterprise-shell .topbar-logout {
+  padding: 7px 14px !important;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-inverse) !important;
+  background: var(--clay-black) !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .topbar-logout:hover {
+  background: var(--accent-hover) !important;
+}
+
+.ar-enterprise-shell .sidebar-nav-block,
+.ar-enterprise-shell .sidebar-nav-block.float-glass {
+  border-radius: 22px !important;
+}
+
+.ar-enterprise-shell .sidebar-nav-block .sidebar-btn {
+  color: #000000 !important;
+  border-radius: 50% !important;
+}
+
+.ar-enterprise-shell .sidebar-nav-block .sidebar-btn svg {
+  color: #000000;
+}
+
+.ar-enterprise-shell .sidebar-nav-block .sidebar-btn:hover {
+  background: var(--clay-pressed) !important;
+  box-shadow: var(--shadow-clay-raised-sm) !important;
+}
+
+.ar-enterprise-shell .sidebar-nav-block .sidebar-btn.active {
+  background: var(--clay-black) !important;
+  color: var(--text-inverse) !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .sidebar-nav-block .sidebar-btn.active svg {
+  color: var(--text-inverse) !important;
+}
+
+.ar-enterprise-shell .stat-label {
+  color: #000000 !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ar-enterprise-shell .stat-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-1) !important;
+  font-weight: 600;
+}
+
+.ar-enterprise-shell .float-drawer {
+  top: calc(var(--chrome-gap) + var(--topbar-h) + 8px);
+  bottom: calc(var(--chrome-gap) + var(--bottombar-h) + 8px);
+  width: min(var(--drawer-w), calc(100vw - 96px)) !important;
+  border-radius: var(--float-radius) !important;
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+}
+
+.ar-enterprise-shell .float-drawer .panel-slot.active {
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Top / bottom rules — POIs + Journey (same drawer chrome) */
+.ar-enterprise-shell .drawer-panel-edge {
+  flex-shrink: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.14);
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.ar-enterprise-shell .drawer-panel-edge--top {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.ar-enterprise-shell .drawer-panel-edge--bottom {
+  margin-top: auto;
+  margin-bottom: 10px;
+}
+
+.ar-enterprise-shell .panel-slot.journey-panel.active {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  background: #ffffff !important;
+}
+
+.ar-enterprise-shell .poi-panel,
+.ar-enterprise-shell .roadmap-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  text-align: center !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
+}
+
+.ar-enterprise-shell .poi-panel-header,
+.ar-enterprise-shell .poi-panel-header-row,
+.ar-enterprise-shell .roadmap-toolbar {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.ar-enterprise-shell .poi-panel-title,
+.ar-enterprise-shell .roadmap-title,
+.ar-enterprise-shell .poi-coords-title,
+.ar-enterprise-shell .roadmap-hint {
+  text-align: center !important;
+  width: 100%;
+}
+
+.ar-enterprise-shell .poi-list {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.ar-enterprise-shell .poi-item {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  text-align: center !important;
+  justify-content: center !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ar-enterprise-shell .poi-coords {
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.ar-enterprise-shell .poi-coords .coord-inputs,
+.ar-enterprise-shell .poi-coords .poi-actions-row {
+  justify-content: center !important;
+}
+
+.ar-enterprise-shell .poi-coords .coord-group,
+.ar-enterprise-shell .poi-coords .field-label {
+  text-align: center !important;
+}
+
+.ar-enterprise-shell .roadmap-chain--vertical {
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.ar-enterprise-shell .roadmap-chain--vertical .roadmap-node,
+.ar-enterprise-shell .roadmap-chain--vertical .roadmap-node--start,
+.ar-enterprise-shell .roadmap-chain--vertical .roadmap-connector {
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.ar-enterprise-shell .roadmap-node--poi {
+  cursor: grab !important;
+}
+
+.ar-enterprise-shell .roadmap-node--poi:active,
+.ar-enterprise-shell .roadmap-node--poi.dragging {
+  cursor: grabbing !important;
+  outline: 2px solid #000000 !important;
+  outline-offset: 2px !important;
+  box-shadow: var(--shadow-clay-raised-sm), 0 0 0 1px #000000 !important;
+}
+
+.ar-enterprise-shell .poi-panel-header,
+.ar-enterprise-shell .reviews-panel-header,
+.ar-enterprise-shell .user-panel-header,
+.ar-enterprise-shell .user-insights-header {
+  padding-top: 4px !important;
+  padding-bottom: 10px !important;
+}
+
+.ar-enterprise-shell .poi-list,
+.ar-enterprise-shell .reviews-list,
+.ar-enterprise-shell .user-list {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+/* Live / History — clay segmented control */
+.ar-enterprise-shell .user-tabs {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin: 8px 12px 10px !important;
+  padding: 6px !important;
+  background: var(--clay-pressed) !important;
+  border: none !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-clay-inset) !important;
+}
+
+.ar-enterprise-shell .user-tab {
+  flex: 1 1 30% !important;
+  min-width: 0 !important;
+  padding: 8px 4px !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #000000 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  cursor: pointer;
+}
+
+.ar-enterprise-shell .user-tab:hover {
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .user-tab.active {
+  color: #000000 !important;
+  background: var(--clay-raised) !important;
+  box-shadow: var(--shadow-clay-raised-sm) !important;
+}
+
+.ar-enterprise-shell .user-item,
+.ar-enterprise-shell .nav-item,
+.ar-enterprise-shell .poi-item,
+.ar-enterprise-shell .review-card,
+.ar-enterprise-shell .reviews-summary-card,
+.ar-enterprise-shell .analytics-card {
+  background: var(--clay-raised) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius) !important;
+  color: #000000 !important;
+  box-shadow: var(--shadow-clay-raised-sm) !important;
+}
+
+.ar-enterprise-shell .user-item.active,
+.ar-enterprise-shell .nav-item.active,
+.ar-enterprise-shell .poi-item.active {
+  background: var(--clay-pressed) !important;
+  border: 1px solid var(--border-bright) !important;
+  box-shadow: var(--shadow-clay-inset) !important;
+}
+
+.ar-enterprise-shell .nav-title,
+.ar-enterprise-shell .poi-panel-title,
+.ar-enterprise-shell .roadmap-title {
+  color: var(--text-1) !important;
+  font-weight: 700;
+}
+
+.ar-enterprise-shell .btn-primary,
+.ar-enterprise-shell .btn-save {
+  background: var(--clay-black) !important;
+  border: none !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .btn-primary:hover,
+.ar-enterprise-shell .btn-save:hover {
+  background: var(--accent-hover) !important;
+}
+
+.ar-enterprise-shell .map-display-select,
+.ar-enterprise-shell select,
+.ar-enterprise-shell input,
+.ar-enterprise-shell textarea {
+  background: var(--clay-raised) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-1) !important;
+  box-shadow: var(--shadow-clay-inset) !important;
+}
+
+.ar-enterprise-shell .map-display-select:focus,
+.ar-enterprise-shell select:focus,
+.ar-enterprise-shell input:focus,
+.ar-enterprise-shell textarea:focus {
+  outline: none;
+  box-shadow: var(--shadow-clay-inset), 0 0 0 2px rgba(0, 0, 0, 0.12) !important;
+}
+
+.ar-enterprise-shell .scene-toolbar-inner {
+  background: #ffffff !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-clay-raised) !important;
+}
+
+.ar-enterprise-shell .scene-mesh-mode-bar .scene-mesh-mode {
+  background: #ffffff !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: var(--shadow-clay-raised) !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tabs {
+  background: var(--clay-pressed) !important;
+  box-shadow: var(--shadow-clay-inset) !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tab {
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .scene-mesh-tab.active {
+  background: var(--clay-black) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .scene-tool-btn {
+  color: var(--text-2) !important;
+  border-radius: 999px !important;
+}
+
+.ar-enterprise-shell .scene-tool-btn.active {
+  background: var(--clay-black) !important;
+  border-color: transparent !important;
+  color: var(--text-inverse) !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .scene-tool-btn .ui-icon-go-ring {
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .scene-tool-btn.active .ui-icon-go-ring {
+  color: #ffffff !important;
+}
+
+.ar-enterprise-shell .gizmo-mode-btn {
+  background: var(--clay-raised) !important;
+  border: 1px solid var(--border-base) !important;
+  color: var(--text-2) !important;
+}
+
+.ar-enterprise-shell .gizmo-mode-btn:hover {
+  color: var(--text-1) !important;
+  background: var(--clay-floating, #f0f0f0) !important;
+}
+
+.ar-enterprise-shell .gizmo-mode-btn.active {
+  background: var(--clay-black) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+/* Users + Submitted — centered title only */
+.ar-enterprise-shell .user-panel .nav-title {
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+.ar-enterprise-shell .submitted-panel .reviews-panel-header {
+  position: relative !important;
+}
+
+.ar-enterprise-shell .submitted-panel .nav-title {
+  display: block !important;
+  width: 100% !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+.ar-enterprise-shell .submitted-panel .reviews-refresh {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+.ar-enterprise-shell .roadmap-node,
+.ar-enterprise-shell .roadmap-node--start {
+  background: var(--clay-raised) !important;
+  box-shadow: var(--shadow-clay-raised-sm) !important;
+  border-radius: var(--radius) !important;
+}
+
+.ar-enterprise-shell .roadmap-node-seq {
+  background: var(--clay-black) !important;
+  color: var(--text-inverse) !important;
+  box-shadow: var(--shadow-clay-black) !important;
+}
+
+.ar-enterprise-shell .roadmap-connector {
+  color: #000000 !important;
+}
+
+.immersive-shell.ar-enterprise-shell .review-meta {
+  color: #000000 !important;
+}
+
+/* Readable black text across panels */
+.ar-enterprise-shell .review-meta,
+.ar-enterprise-shell .review-user,
+.ar-enterprise-shell .review-body,
+.ar-enterprise-shell .review-when,
+.ar-enterprise-shell .review-journey-title,
+.ar-enterprise-shell .poi-item,
+.ar-enterprise-shell .nav-item,
+.ar-enterprise-shell .field-label,
+.ar-enterprise-shell .stat-label,
+.ar-enterprise-shell .stat-value,
+.ar-enterprise-shell .user-tab,
+.ar-enterprise-shell .user-empty,
+.ar-enterprise-shell .reviews-empty,
+.ar-enterprise-shell .reviews-loading,
+.ar-enterprise-shell label,
+.ar-enterprise-shell .subtitle,
+.ar-enterprise-shell .help {
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .review-card-top {
+  justify-content: flex-end;
+}
+
+/* Scrollbars — black (not blue) */
+html,
+body,
+.ar-enterprise-shell {
+  scrollbar-color: rgba(0, 0, 0, 0.35) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 0;
+}
+
+.ar-enterprise-shell .panel-slot.active::-webkit-scrollbar:horizontal,
+.ar-enterprise-shell .poi-list::-webkit-scrollbar:horizontal {
+  display: none;
+  height: 0;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border-radius: 4px;
+  box-shadow: none !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.ar-enterprise-shell .roadmap-node--add {
+  cursor: pointer !important;
+  border: 1px dashed rgba(0, 0, 0, 0.25) !important;
+  background: var(--clay-raised) !important;
+  color: #000000 !important;
+}
+
+.ar-enterprise-shell .roadmap-node--add:hover {
+  border-color: rgba(0, 0, 0, 0.45) !important;
+  background: var(--clay-pressed) !important;
+}
+
+.ar-enterprise-shell .roadmap-plus {
+  color: #000000 !important;
+}

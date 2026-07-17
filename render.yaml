@@ -1,0 +1,26 @@
+# Configuration for deploying to Render (https://render.com)
+# This file tells Render how to build and route your static site.
+
+services:
+  - type: web
+    name: navme-viewer
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # The following routing rules handle the proxying for API and S3 downloads,
+    # similar to how the Vite development proxy works.
+    routes:
+      # Proxy for MultiSet AI API
+      - source: /api/multiset/*
+        destination: https://api.multiset.ai/*
+        type: rewrite
+
+      # Proxy for S3 bucket to bypass CORS for mesh downloads
+      - source: /s3-proxy/*
+        destination: https://prod-multiset.s3-accelerate.amazonaws.com/*
+        type: rewrite
+
+      # Fallback to index.html for Single Page Application (SPA) routing
+      - source: /*
+        destination: /index.html
+        type: rewrite
