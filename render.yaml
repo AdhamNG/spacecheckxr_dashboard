@@ -7,6 +7,11 @@ services:
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
     # The following routing rules handle the proxying for API and S3 downloads,
     # similar to how the Vite development proxy works.
     routes:
