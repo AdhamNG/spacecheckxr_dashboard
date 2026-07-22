@@ -193,7 +193,13 @@ export function createPOIPanel(container, options = {}) {
     detachGizmo();
   }
 
-  function selectPOI(index) {
+  /**
+   * @param {number} index
+   * @param {{ fly?: boolean, cancelTool?: boolean }} [options]
+   *   fly — move camera to the POI (default true)
+   *   cancelTool — exit Go to / Add POI / Add media (default true)
+   */
+  function selectPOI(index, options = {}) {
     selectedIndex = index;
     setLastPickedPoiIndex(index);
     const poi = poisData[index];
@@ -210,11 +216,15 @@ export function createPOIPanel(container, options = {}) {
     inputY.value = poi.pos_y.toFixed(4);
     inputZ.value = poi.pos_z.toFixed(4);
 
-    flyTo(poi.pos_x, poi.pos_y, poi.pos_z);
+    if (options.fly !== false) {
+      flyTo(poi.pos_x, poi.pos_y, poi.pos_z);
+    }
 
-    setSceneInteractionMode('default');
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('spacecheck-scene-tool-cancel'));
+    if (options.cancelTool !== false) {
+      setSceneInteractionMode('default');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('spacecheck-scene-tool-cancel'));
+      }
     }
 
     const objs = getPOIObjects();
@@ -297,7 +307,9 @@ export function createPOIPanel(container, options = {}) {
         pos_z: z,
       });
       rebuildList();
-      selectPOI(idx);
+      // Stay at the placement view (no zoom-out / fly-away after Go to → Add POI).
+      // cancelTool exits Add POI mode and hides the Exit control.
+      selectPOI(idx, { fly: false });
       closeAddDialog();
       onPoiListChange?.();
     } catch (err) {
@@ -424,11 +436,22 @@ export function createPOIPanel(container, options = {}) {
     refresh() {
       rebuildList();
       if (selectedIndex >= 0 && selectedIndex < poisData.length) {
-        selectPOI(selectedIndex);
+        // Sync list highlight + editor fields only. Do not fly, cancel tools, or
+        // re-attach the gizmo — that would break Go to → Add POI at the same view.
+        const poi = poisData[selectedIndex];
+        listEl.querySelectorAll('.poi-item').forEach((el, i) => {
+          el.classList.toggle('active', i === selectedIndex);
+        });
+        coordsEl.classList.remove('hidden');
+        selectedNameEl.textContent = poi.poi_name;
+        inputName.value = poi.poi_name;
+        inputDescription.value = poi.description ?? '';
+        inputX.value = poi.pos_x.toFixed(4);
+        inputY.value = poi.pos_y.toFixed(4);
+        inputZ.value = poi.pos_z.toFixed(4);
       } else {
         selectedIndex = -1;
         coordsEl.classList.add('hidden');
-        detachGizmo();
       }
     },
     openAddDialog,

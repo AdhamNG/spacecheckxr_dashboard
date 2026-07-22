@@ -41,6 +41,7 @@ import {
   seedDummyPoisWhenEmpty,
   refreshPOIGroup,
   setPOIGroupVisible,
+  poisData,
 } from './ar/pois.js';
 import { createPoiRoadmap } from './ui/poi-roadmap.js';
 import { createDashboard } from './ui/dashboard.js';
@@ -110,7 +111,10 @@ const formUI = renderForm(app, onFormSubmit);
 
 const navPanel = createNavPanel(dashboard.slots.nav, flyTo);
 const poiPanel = createPOIPanel(dashboard.slots.pois, {
-  onPoiListChange: () => roadmapUi?.refresh(),
+  onPoiListChange: () => {
+    roadmapUi?.refresh();
+    dashboard.refreshStats({ pois: poisData.length });
+  },
 });
 setOnPoiPickedFromCanvas((index) => poiPanel.selectByIndex(index));
 
@@ -290,7 +294,12 @@ async function handleMediaSaved(saved, context = {}) {
 dashboard.onPanelChange((panelId) => {
   applySceneLayers(panelId);
 
-  if (poisReady) {
+  // Keep the current camera when Go to / Add POI / Add media is active so
+  // opening the drawer after walking somewhere does not zoom back out.
+  const toolMode = sceneToolbar.getMode();
+  const preserveCamera =
+    toolMode === 'walk' || toolMode === 'add-poi' || toolMode === 'add-media';
+  if (poisReady && !preserveCamera) {
     requestAnimationFrame(() => frameCameraToMap({ animate: true }));
   }
 
@@ -398,7 +407,7 @@ async function onFormSubmit(creds) {
       }
       applySceneLayers('pois');
       dashboard.openPanel('pois');
-      dashboard.refreshStats();
+      dashboard.refreshStats({ pois: poisData.length });
     }
 
     roadmapUi = createPoiRoadmap(dashboard.slots.journey, {

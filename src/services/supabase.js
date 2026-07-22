@@ -276,13 +276,28 @@ async function headCount(table, filter = '') {
   ensureConfig();
   const merged = mergeOwnerFilter(filter);
   const qs = merged ? `?${merged}` : '';
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${qs}`, {
+  const parseRange = (res) => {
+    const range = res.headers.get('content-range');
+    if (!range) return null;
+    const total = parseInt(range.split('/')[1], 10);
+    return Number.isFinite(total) ? total : null;
+  };
+
+  // Prefer HEAD; some browsers/proxies hide Content-Range on HEAD — fall back to GET.
+  const headRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}${qs}`, {
     method: 'HEAD',
     headers: { ...baseHeaders, Prefer: 'count=exact' },
   });
-  const range = res.headers.get('content-range');
-  if (range) return parseInt(range.split('/')[1], 10) || 0;
-  return 0;
+  const headTotal = parseRange(headRes);
+  if (headTotal != null) return headTotal;
+
+  const sep = qs ? '&' : '?';
+  const getRes = await fetch(`${SUPABASE_URL}/rest/v1/${table}${qs}${sep}select=id&limit=1`, {
+    method: 'GET',
+    headers: { ...baseHeaders, Prefer: 'count=exact', Range: '0-0' },
+  });
+  const getTotal = parseRange(getRes);
+  return getTotal != null ? getTotal : 0;
 }
 
 /* ── Users (pj_users) ── */

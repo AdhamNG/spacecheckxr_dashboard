@@ -149,7 +149,12 @@ export function createDashboard(container) {
     hide() {
       el.classList.add('hidden');
     },
-    refreshStats() { refreshTopStats(el); },
+    /**
+     * @param {{ pois?: number }} [overrides] — optional immediate counts (e.g. after add/delete)
+     */
+    refreshStats(overrides) {
+      refreshTopStats(el, overrides);
+    },
     onViewSwitch(cb) { onViewSwitch = cb; },
     /** Fired when the right-hand sidebar panel changes (Map, POIs, Track, …). */
     onPanelChange(cb) {
@@ -183,10 +188,19 @@ function setActivePanel(panelId, dashEl) {
   if (onPanelChangeCallback) onPanelChangeCallback(panelId, drawerPanel);
 }
 
-async function refreshTopStats(dashEl) {
+/**
+ * @param {HTMLElement} dashEl
+ * @param {{ pois?: number }} [overrides]
+ */
+async function refreshTopStats(dashEl, overrides = {}) {
   const poisEl = dashEl.querySelector('#stat-pois');
   const chipEl = dashEl.querySelector('.topbar-stat-chip');
   if (!poisEl) return;
+
+  // Update immediately when caller knows the local list length (add/delete).
+  if (typeof overrides.pois === 'number') {
+    poisEl.textContent = String(overrides.pois);
+  }
 
   try {
     const c = await fetchCounts();
@@ -197,7 +211,10 @@ async function refreshTopStats(dashEl) {
       }
       return;
     }
-    poisEl.textContent = String(c.pois);
+    // Prefer local override so the chip matches the session list after add/delete.
+    poisEl.textContent = String(
+      typeof overrides.pois === 'number' ? overrides.pois : c.pois,
+    );
     if (chipEl) chipEl.removeAttribute('title');
   } catch { /* silent */ }
 }
